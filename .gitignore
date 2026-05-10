@@ -1,4 +1,5 @@
-# Obsygnal-Pulse .gitignore
+# Obsygnal-Pulse .gitignore - Prevents local development artifacts, compiled Go binaries,
+# cached Node modules, and sensitive environment variable files from being committed into the monorepo.
 
 # Binaries
 bin/

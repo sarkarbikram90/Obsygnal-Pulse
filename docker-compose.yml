@@ -1,14 +1,13 @@
 # Obsygnal-Pulse Local Development Stack
 # Usage: docker compose up -d
 #
-# This provides the full local development environment:
-# - ClickHouse (analytics database)
-# - Redis (cache + queues)
-# - Prometheus (metrics collection)
-# - Grafana (dashboards)
+# This file defines the underlying analytics datastores (ClickHouse) and in-memory
+# caches (Redis) required by the Go microservices, along with the Prometheus/Grafana
+# observability plane. All services are wired to an internal bridge network ('obsygnal')
+# to simulate production Kubernetes networking.
 #
-# The Go services run natively (not in Docker) for fast iteration.
-# Use `make dev` to start the Go services with hot-reload.
+# Note: The Go microservices run natively outside of Docker to enable fast iteration.
+# Use `make dev` to start the API with hot-reload.
 
 services:
   # ============================================================

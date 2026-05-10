@@ -1,13 +1,13 @@
 -- Obsygnal-Pulse ClickHouse Schema
 -- Migration: 001_initial_schema
 --
--- Design decisions:
--- 1. MergeTree for raw metrics (append-only, high write throughput)
--- 2. Partitioned by month (toYYYYMM) for efficient retention management
--- 3. ORDER BY tuned for time-range queries filtered by cluster/node/gpu
--- 4. LowCardinality for string columns with limited distinct values (huge compression wins)
--- 5. TTL for automatic data lifecycle management
--- 6. Materialized views for pre-aggregated dashboards (avoid expensive real-time GROUP BY)
+-- This schema establishes the foundational OLAP data structures for the platform.
+-- It defines the core MergeTree tables required to ingest massive streams of raw GPU
+-- telemetry (gpu_metrics) and Node statistics. It leverages LowCardinality for
+-- high-cardinality metadata to aggressively reduce RAM consumption and I/O.
+-- It also defines the Materialized Views (gpu_metrics_hourly_mv) that pre-aggregate
+-- raw telemetry into time-bucketed rollups, drastically reducing query latency for
+-- the Grafana dashboards and preventing full-table scans during recommendation generation.
 
 -- ============================================================
 -- RAW GPU METRICS

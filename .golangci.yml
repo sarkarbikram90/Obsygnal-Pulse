@@ -1,3 +1,6 @@
+# .golangci.yml - Configures the strict static analysis pipeline for the CI/CD workflow.
+# It enforces security scanning (gosec), dead code elimination, and strict formatting
+# across the Go microservices to ensure production-grade codebase health.
 run:
   timeout: 5m
 

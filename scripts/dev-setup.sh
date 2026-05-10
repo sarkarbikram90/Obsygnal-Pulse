@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# dev-setup.sh — Initialize the development environment
+# dev-setup.sh — Bootstraps the complete local Kubernetes-equivalent development environment.
+# This script installs Go dependencies, provisions the ClickHouse+Redis+Prometheus topology
+# via Docker Compose, waits for TCP readiness, and automatically applies SQL migrations.
 # =============================================================================
 set -euo pipefail
 
