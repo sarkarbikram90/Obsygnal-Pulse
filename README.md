@@ -26,7 +26,7 @@ Obsygnal-Pulse is an observability and intelligence platform that monitors GPU c
 ```
 GPU Telemetry → Ingestion (validate, dedup, buffer) → ClickHouse
                                                          ↓
-Detection Engine (periodic eval) ← Query recent metrics ←┘
+Detection Engine (periodic eval) ← Query recent metrics ← 
          ↓
 Inefficiency → Recommendation Engine → Recommendations
          ↓
