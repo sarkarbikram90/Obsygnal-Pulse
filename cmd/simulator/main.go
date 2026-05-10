@@ -1,3 +1,8 @@
+// Package main implements the synthetic GPU telemetry simulator.
+// This developer tool generates highly realistic, randomized GPU utilization metrics
+// based on predefined hardware profiles (e.g., A100, T4) and behavior patterns
+// (e.g., idle, memory leak, thermal spike) to safely test the ingestion and detection pipelines
+// without requiring access to actual NVIDIA hardware.
 package main
 
 import (

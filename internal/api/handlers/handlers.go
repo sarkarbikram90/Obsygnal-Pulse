@@ -1,6 +1,9 @@
-// Package handlers contains HTTP request handlers.
-// Handlers are thin — they parse requests, call services, and format responses.
-// NO business logic lives here.
+// Package handlers provides the concrete HTTP endpoint handlers for the api-server.
+// Handlers act strictly as the Primary Adapter in the Hexagonal Architecture:
+// they parse JSON requests into Domain Transfer Objects (DTOs), invoke the
+// corresponding internal business logic Services, and format the resulting
+// Domain models back into JSON responses. No business rules or direct
+// database queries are permitted in this package.
 package handlers
 
 import (

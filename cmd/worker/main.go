@@ -1,4 +1,4 @@
-// Package main implements the background worker service.
+// Package main implements the asynchronous background worker service for Obsygnal-Pulse.
 //
 // The worker processes asynchronous tasks such as:
 // - Running the detection engine evaluation loop

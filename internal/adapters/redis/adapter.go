@@ -1,4 +1,7 @@
-// Package redis implements the CacheStore port using Redis.
+// Package redis implements the CacheStore port for the Redis infrastructure.
+// This secondary adapter is responsible for handling high-performance, short-lived data,
+// specifically managing sliding-window rate limiting for the API, deduplication locks
+// for the worker pipelines, and ephemeral caching of cluster state.
 package redis
 
 import (

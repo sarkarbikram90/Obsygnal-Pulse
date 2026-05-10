@@ -1,6 +1,7 @@
-// Package metrics defines the core domain models for GPU telemetry data.
-// These models are infrastructure-agnostic — they don't know about ClickHouse,
-// Prometheus, or any specific storage system.
+// Package metrics defines the core domain models representing GPU telemetry data.
+// These models encapsulate the purest business rules of the platform (e.g., defining
+// what an "idle" GPU means or parsing threshold validations) and are completely
+// isolated from any external infrastructure, database ORMs, or HTTP frameworks.
 package metrics
 
 import (

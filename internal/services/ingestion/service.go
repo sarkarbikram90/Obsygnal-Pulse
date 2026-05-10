@@ -1,17 +1,14 @@
-// Package ingestion implements the telemetry ingestion pipeline.
+// Package ingestion implements the core telemetry ingestion service pipeline.
 //
-// The ingestion service is responsible for:
-// 1. Receiving metric batches from collectors/simulator
-// 2. Validating and normalizing metrics
-// 3. Deduplicating metrics (based on GPU ID + timestamp)
-// 4. Batch-buffering for efficient ClickHouse inserts
-// 5. Publishing events for downstream processing
+// This service acts as the central data orchestrator for the platform, responsible for:
+// 1. Receiving massive bursts of metric batches from external collectors.
+// 2. Enforcing domain-level validation and normalization on raw telemetry.
+// 3. Providing strict deduplication via Redis sliding windows to prevent data corruption.
+// 4. Batch-buffering data in memory to enable highly efficient bulk ClickHouse inserts.
 //
-// Design decisions:
-// - Buffered writer with configurable batch size and flush interval
-// - Circuit breaker pattern for ClickHouse resilience
-// - Metrics are validated at the domain level, not the adapter level
-// - Deduplication uses a sliding window in Redis to handle out-of-order delivery
+// By sitting at the center of the Hexagonal Architecture, this service is entirely
+// agnostic to how data is received (HTTP vs Queue) and focuses solely on robust,
+// high-throughput processing and persistence logic.
 package ingestion
 
 import (

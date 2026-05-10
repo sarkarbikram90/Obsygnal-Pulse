@@ -1,8 +1,9 @@
-// Package routes registers all API routes on the Gin engine.
+// Package routes centralizes the HTTP routing topology for the api-server.
 //
-// Route registration is separated from handlers for clarity:
-// - routes.go defines URL patterns and maps them to handlers
-// - handlers.go implements the request/response logic
+// It strictly maps URL paths (e.g., /api/v1/health) to their respective handlers
+// and wires up critical middleware (Rate Limiting, JWT Authentication, CORS).
+// This separation ensures the HTTP server configuration is cleanly decoupled
+// from the concrete endpoint logic.
 package routes
 
 import (

@@ -1,4 +1,7 @@
-// Package clickhouse implements the MetricsRepository port for ClickHouse.
+// Package clickhouse implements the MetricsRepository port for the ClickHouse OLAP database.
+// This secondary adapter is optimized for extreme write-throughput (batch insertions)
+// and rapid time-series analytical queries. It maps raw SQL data into
+// domain-native structs and strictly handles connection pooling and query timeouts.
 package clickhouse
 
 import (

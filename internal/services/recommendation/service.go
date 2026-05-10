@@ -1,5 +1,7 @@
-// Package recommendation implements the optimization recommendation engine.
-//
+// Package recommendation implements the automated optimization recommendation engine.
+// It translates mathematical inefficiencies (identified by the detection engine) into
+// human-actionable infrastructure modifications (e.g., "Downscale to T4 GPU"), attaching
+// calculated confidence scores and estimated monetary savings.
 // Architecture:
 //
 //	The recommendation engine transforms detected inefficiencies into actionable

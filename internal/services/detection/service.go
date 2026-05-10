@@ -1,5 +1,6 @@
-// Package detection implements the inefficiency detection engine.
-//
+// Package detection implements the core rule-based inefficiency detection engine.
+// It is responsible for analyzing historical GPU and Node telemetry to mathematically
+// identify patterns of wasted compute resources (e.g., Idle GPUs, CPU Starvation).
 // Architecture:
 //
 //	The detection engine follows a rule-based evaluation pattern.

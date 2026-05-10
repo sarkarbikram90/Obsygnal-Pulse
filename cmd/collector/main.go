@@ -1,10 +1,7 @@
-// Package main implements the telemetry collector service.
-//
-// The collector scrapes GPU metrics from Prometheus (which in turn
-// scrapes DCGM Exporter) and publishes them to Redis Streams for
-// the ingestion service to consume.
-//
-// In production, this replaces the simulator.
+// Package main implements the edge telemetry collector daemon.
+// The collector is intended to be deployed as a DaemonSet on Kubernetes GPU nodes.
+// It directly interfaces with the NVIDIA Management Library (NVML) to scrape hardware metrics
+// and securely streams the batched payloads to the upstream api-server for aggregation.
 package main
 
 import (

@@ -1,3 +1,8 @@
+// Package main defines the primary entrypoint for the api-server.
+// The api-server provides the public-facing REST API for Obsygnal-Pulse.
+// It is responsible for ingesting high-throughput GPU telemetry from nodes,
+// serving aggregated cluster health dashboards, and exposing optimization recommendations.
+// It acts as the Primary Adapter, safely wiring HTTP routes to internal domain services.
 package main
 
 import (
