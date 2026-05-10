@@ -2,32 +2,42 @@
 
 **AI Infrastructure Efficiency Platform** — Detect wasted GPU compute, optimize training workloads, save money.
 
-[![CI](https://github.com/obsygnal/obsygnal-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/obsygnal/obsygnal-pulse/actions)
-[![Go Report Card](https://goreportcard.com/badge/github.com/obsygnal/obsygnal-pulse)](https://goreportcard.com/report/github.com/obsygnal/obsygnal-pulse)
+[![CI](https://github.com/sarkarbikram90/Obsygnal-Pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/sarkarbikram90/Obsygnal-Pulse/actions)
 
 ---
 
 ## What is Obsygnal-Pulse?
 
-Obsygnal-Pulse is an observability and intelligence platform that monitors GPU clusters running AI/ML workloads, detects inefficiencies (idle GPUs, underutilized memory, failed training loops), and provides actionable optimization recommendations with confidence scores and estimated cost savings.
+Obsygnal-Pulse is an observability and intelligence platform that monitors GPU clusters running AI/ML workloads, detects inefficiencies (idle GPUs, underutilized memory, stalled training loops), and provides actionable optimization recommendations with confidence scores and estimated cost savings.
 
 ### Key Features
 
-- **GPU Cluster Dashboard** — Real-time cluster overview, node health, GPU utilization heatmaps, cost estimation
-- **Inefficiency Detection** — Automatically detect underutilized GPUs, oversized allocations, stalled training, high retry patterns
-- **Optimization Recommendations** — Actionable suggestions with confidence scores and estimated savings
-- **Alerting** — Slack, webhook, threshold, and anomaly-based alerts
-- **Historical Analytics** — Job history, efficiency trends, cost trends, failure analysis
+- **Real-Time GPU Dashboard** — Cluster overview, GPU utilization heatmaps, time-series metrics charts, live status monitoring
+- **6 Detection Rules** — Underutilized GPU, idle GPU, low memory usage, CPU starvation, stalled training, thermal spikes
+- **Optimization Recommendations** — Actionable suggestions with confidence scoring (0–100%) and dollar-denominated savings estimates
+- **Multi-Channel Alerting** — Severity filtering, deduplication windows, rate limiting, Slack and webhook adapters
+- **High-Volume Ingestion** — Validate, deduplicate, buffer, and batch-insert GPU telemetry into ClickHouse
+- **GPU Simulator** — 6 realistic behavior profiles for development without GPU hardware
 
 ---
 
 ## Architecture
 
-- **Backend**: Go (Gin), hexagonal architecture, modular monolith
-- **Frontend**: React, TypeScript, TailwindCSS, shadcn/ui, Recharts
-- **Storage**: ClickHouse (analytics), Redis (cache/queues), Prometheus (real-time metrics)
-- **Infrastructure**: Docker, Kubernetes, Helm, Terraform (GKE)
-- **Observability**: Grafana, Loki, OpenTelemetry
+```
+GPU Telemetry → Ingestion (validate, dedup, buffer) → ClickHouse
+                                                         ↓
+Detection Engine (periodic eval) ← Query recent metrics ←┘
+         ↓
+Inefficiency → Recommendation Engine → Recommendations
+         ↓
+Alerting Service → Slack / Webhook
+```
+
+- **Backend**: Go 1.26 (Gin), hexagonal architecture, modular monolith
+- **Frontend**: React 19, TypeScript, TailwindCSS v4, Recharts, Vite
+- **Storage**: ClickHouse (analytics), Redis (cache/dedup), Prometheus (real-time metrics)
+- **Infrastructure**: Docker Compose, Kubernetes, Helm, Terraform (GKE)
+- **Observability**: Grafana, Prometheus, structured JSON logging (zerolog)
 
 ---
 
@@ -35,15 +45,16 @@ Obsygnal-Pulse is an observability and intelligence platform that monitors GPU c
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.26+
 - Docker & Docker Compose
+- Node.js 22+ (for frontend)
 - Make
 
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/obsygnal/obsygnal-pulse.git
-cd obsygnal-pulse
+git clone https://github.com/sarkarbikram90/Obsygnal-Pulse.git
+cd Obsygnal-Pulse
 cp .env.example .env
 make setup
 ```
@@ -80,7 +91,17 @@ API available at `http://localhost:8080`
 make dev-simulator
 ```
 
-Generates fake GPU telemetry for development without real GPU hardware.
+Generates realistic GPU telemetry (6 behavior profiles) for development without real GPU hardware.
+
+### 6. Run the Frontend
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Dashboard available at `http://localhost:5173`
 
 ---
 
@@ -94,6 +115,26 @@ Generates fake GPU telemetry for development without real GPU hardware.
 | `GET` | `/api/v1/gpus/metrics` | GPU metric time series |
 | `POST` | `/api/v1/metrics/ingest` | Ingest metric batches |
 | `GET` | `/api/v1/ingestion/stats` | Ingestion pipeline stats |
+| `GET` | `/api/v1/inefficiencies` | List active inefficiencies |
+| `GET` | `/api/v1/recommendations` | List optimization recommendations |
+| `POST` | `/api/v1/recommendations/:id/apply` | Apply a recommendation |
+| `POST` | `/api/v1/recommendations/:id/dismiss` | Dismiss a recommendation |
+| `GET` | `/api/v1/alerts/recent` | Recent alert history |
+
+See [docs/api/README.md](docs/api/README.md) for full API reference.
+
+---
+
+## Detection Rules
+
+| Rule | Severity | Trigger |
+|------|----------|---------|
+| Underutilized GPU | Medium | Avg utilization < 20% |
+| Idle GPU | High | Utilization < 2%, 0 processes |
+| Low Memory Usage | Medium | Memory utilization < 15% |
+| CPU Starvation | High | CPU > 90%, GPU < 50% |
+| Stalled Training | Critical | Compute < 5%, memory > 30%, processes > 0 |
+| Thermal Spike | Critical | Temperature > 90°C |
 
 ---
 
@@ -101,11 +142,12 @@ Generates fake GPU telemetry for development without real GPU hardware.
 
 ```bash
 make help          # Show all available commands
-make build         # Build all binaries
+make build         # Build all binaries (api-server, simulator, collector, worker)
 make test          # Run all tests
 make test-coverage # Run tests with coverage report
 make lint          # Run linters
 make fmt           # Format code
+make vet           # Run go vet
 ```
 
 ---
@@ -115,23 +157,24 @@ make fmt           # Format code
 ```
 ├── cmd/                    # Application entry points
 │   ├── api-server/         # REST API server
-│   ├── collector/          # Telemetry collector
-│   ├── worker/             # Background processing
-│   └── simulator/          # Fake GPU telemetry generator
+│   ├── collector/          # Prometheus/DCGM telemetry collector
+│   ├── worker/             # Background processing (detection pipeline)
+│   └── simulator/          # GPU telemetry generator (dev mode)
 ├── internal/               # Private application code
-│   ├── domain/             # Domain models (no external deps)
-│   ├── ports/              # Interface definitions (hexagonal)
-│   ├── adapters/           # Infrastructure implementations
-│   ├── services/           # Application services
-│   ├── api/                # HTTP handlers & middleware
-│   ├── config/             # Configuration management
-│   ├── pkg/                # Shared utilities
-│   └── simulator/          # GPU simulation engine
-├── web/                    # React frontend
-├── deploy/                 # Docker, Helm, Terraform, K8s
-├── migrations/             # Database migrations
+│   ├── domain/             # Domain models (metrics, detection, recommendation, alerting, auth, cluster)
+│   ├── ports/              # Interface definitions (hexagonal architecture)
+│   ├── adapters/           # Infrastructure adapters (ClickHouse, Redis, Slack, Webhook, K8s, Prometheus)
+│   ├── services/           # Application services (ingestion, detection, recommendation, alerting, analytics, auth)
+│   ├── api/                # HTTP handlers, middleware, DTOs, routes
+│   ├── config/             # Environment-based configuration
+│   ├── pkg/                # Shared utilities (logger, health, errors, validation, tracing)
+│   └── simulator/          # GPU simulation engine (6 behavior profiles)
+├── web/                    # React + TypeScript frontend (Vite)
+├── deploy/                 # Docker, Helm, Terraform, K8s manifests
+├── migrations/             # ClickHouse schema migrations
 ├── test/                   # Integration & load tests
-└── docs/                   # Documentation
+├── docs/                   # ADRs, API reference, architecture, runbooks
+└── scripts/                # Development helper scripts
 ```
 
 ---
@@ -140,16 +183,35 @@ make fmt           # Format code
 
 | Component | Technology | Rationale |
 |-----------|-----------|-----------|
-| Backend | Go + Gin | Low latency, high concurrency, small binaries |
-| Analytics DB | ClickHouse | Column-oriented, 10x faster analytical queries |
-| Cache/Queue | Redis | Sub-ms latency, Streams for events |
-| Metrics | Prometheus | Pull-based, ecosystem, PromQL |
-| Frontend | React + TypeScript | Type safety, component ecosystem |
+| Backend | Go 1.26 + Gin | Low latency, high concurrency, small binaries |
+| Analytics DB | ClickHouse | Column-oriented, 10–100x faster analytical queries |
+| Cache/Dedup | Redis | Sub-ms latency, deduplication, connection pooling |
+| Metrics | Prometheus | Pull-based, PromQL, DCGM Exporter compatible |
+| Frontend | React 19 + TypeScript + Vite | Type safety, fast HMR, modern tooling |
+| Charts | Recharts | React-native composable chart library |
+| Styling | TailwindCSS v4 | Utility-first, co-located, dark theme |
 | Dashboards | Grafana | Standard observability UI |
-| Infrastructure | Docker + K8s | Container orchestration |
+| Infrastructure | Docker + K8s + Helm + Terraform | Container orchestration, IaC |
+| CI/CD | GitHub Actions | Lint → Test → Build → Docker → Frontend pipeline |
+
+---
+
+## Test Suite
+
+```
+56 unit tests across 7 packages — all passing
+ 3 integration tests (gated by INTEGRATION_TEST=1)
+ 2 load tests (gated by LOAD_TEST=1)
+```
+
+Run the full suite:
+
+```bash
+make test
+```
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
