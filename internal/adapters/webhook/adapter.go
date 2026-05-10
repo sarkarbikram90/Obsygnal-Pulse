@@ -30,23 +30,29 @@ func NewAdapter(url string, headers map[string]string) *Adapter {
 
 // webhookPayload is the JSON payload sent to the webhook endpoint.
 type webhookPayload struct {
-	Timestamp time.Time         `json:"timestamp"`
-	Title     string            `json:"title"`
-	Message   string            `json:"message"`
-	Severity  string            `json:"severity"`
-	Fields    map[string]string `json:"fields,omitempty"`
-	Source    string            `json:"source"`
+	Timestamp      time.Time         `json:"timestamp"`
+	Title          string            `json:"title"`
+	Message        string            `json:"message"`
+	Severity       string            `json:"severity"`
+	Fields         map[string]string `json:"fields,omitempty"`
+	EstimatedWaste float64           `json:"estimated_waste,omitempty"`
+	Remediation    string            `json:"remediation,omitempty"`
+	DashboardURL   string            `json:"dashboard_url,omitempty"`
+	Source         string            `json:"source"`
 }
 
 // Send dispatches a notification to the webhook endpoint.
 func (a *Adapter) Send(ctx context.Context, notification ports.Notification) error {
 	payload := webhookPayload{
-		Timestamp: time.Now(),
-		Title:     notification.Title,
-		Message:   notification.Message,
-		Severity:  notification.Severity,
-		Fields:    notification.Fields,
-		Source:    "obsygnal-pulse",
+		Timestamp:      time.Now(),
+		Title:          notification.Title,
+		Message:        notification.Message,
+		Severity:       notification.Severity,
+		Fields:         notification.Fields,
+		EstimatedWaste: notification.EstimatedWaste,
+		Remediation:    notification.Remediation,
+		DashboardURL:   notification.DashboardURL,
+		Source:         "obsygnal-pulse",
 	}
 
 	body, err := json.Marshal(payload)

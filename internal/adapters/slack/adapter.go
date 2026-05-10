@@ -33,12 +33,13 @@ type slackMessage struct {
 }
 
 type attachment struct {
-	Color  string  `json:"color"`
-	Title  string  `json:"title"`
-	Text   string  `json:"text"`
-	Fields []field `json:"fields,omitempty"`
-	Footer string  `json:"footer"`
-	Ts     int64   `json:"ts"`
+	Color     string  `json:"color"`
+	Title     string  `json:"title"`
+	TitleLink string  `json:"title_link,omitempty"`
+	Text      string  `json:"text"`
+	Fields    []field `json:"fields,omitempty"`
+	Footer    string  `json:"footer"`
+	Ts        int64   `json:"ts"`
 }
 
 type field struct {
@@ -49,12 +50,11 @@ type field struct {
 
 // Send dispatches a notification to Slack.
 func (a *Adapter) Send(ctx context.Context, notification ports.Notification) error {
-	color := "#36a64f" // green
-	switch notification.Severity {
-	case "warning":
-		color = "#ff9900"
-	case "critical":
+	color := "#36a64f" // green default
+	if notification.Severity == "critical" || notification.Severity == "high" {
 		color = "#ff0000"
+	} else if notification.Severity == "warning" {
+		color = "#ff9900"
 	}
 
 	var fields []field
@@ -62,15 +62,24 @@ func (a *Adapter) Send(ctx context.Context, notification ports.Notification) err
 		fields = append(fields, field{Title: k, Value: v, Short: true})
 	}
 
+	// Enrich with calculated metrics
+	if notification.EstimatedWaste > 0 {
+		fields = append(fields, field{Title: "Est. Waste (USD)", Value: fmt.Sprintf("$%.2f", notification.EstimatedWaste), Short: true})
+	}
+	if notification.Remediation != "" {
+		fields = append(fields, field{Title: "💡 Remediation Guidance", Value: notification.Remediation, Short: false})
+	}
+
 	msg := slackMessage{
 		Text: fmt.Sprintf("🚨 *Obsygnal-Pulse Alert*: %s", notification.Title),
 		Attachments: []attachment{{
-			Color:  color,
-			Title:  notification.Title,
-			Text:   notification.Message,
-			Fields: fields,
-			Footer: "Obsygnal-Pulse",
-			Ts:     time.Now().Unix(),
+			Color:     color,
+			Title:     notification.Title,
+			TitleLink: notification.DashboardURL, // Include deep link
+			Text:      notification.Message,
+			Fields:    fields,
+			Footer:    "Obsygnal-Pulse Bot",
+			Ts:        time.Now().Unix(),
 		}},
 	}
 
@@ -91,7 +100,12 @@ func (a *Adapter) Send(ctx context.Context, notification ports.Notification) err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	// Add logic to specifically identify rate limits for better observability
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return fmt.Errorf("slack rate-limited 429")
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("slack returned status %d", resp.StatusCode)
 	}
 

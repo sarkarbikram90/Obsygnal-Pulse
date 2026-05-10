@@ -99,9 +99,12 @@ type Notifier interface {
 
 // Notification represents a message to send via a notification channel.
 type Notification struct {
-	Title    string            `json:"title"`
-	Message  string            `json:"message"`
-	Severity string            `json:"severity"` // "info", "warning", "critical"
-	Fields   map[string]string `json:"fields,omitempty"`
-	URL      string            `json:"url,omitempty"`
+	Title          string            `json:"title"`
+	Message        string            `json:"message"`
+	Severity       string            `json:"severity"` // "info", "warning", "critical"
+	Fields         map[string]string `json:"fields,omitempty"`
+	URL            string            `json:"url,omitempty"`
+	EstimatedWaste float64           `json:"estimated_waste,omitempty"`
+	Remediation    string            `json:"remediation,omitempty"`
+	DashboardURL   string            `json:"dashboard_url,omitempty"`
 }
