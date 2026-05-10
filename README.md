@@ -6,212 +6,124 @@
 
 ---
 
-## What is Obsygnal-Pulse?
+## 📖 Project Overview
 
-Obsygnal-Pulse is an observability and intelligence platform that monitors GPU clusters running AI/ML workloads, detects inefficiencies (idle GPUs, underutilized memory, stalled training loops), and provides actionable optimization recommendations with confidence scores and estimated cost savings.
+Obsygnal-Pulse is an enterprise-grade observability and intelligence platform that monitors GPU clusters running AI/ML workloads. It ingests high-volume GPU telemetry, detects inefficiencies (idle GPUs, underutilized memory, stalled training loops), and provides actionable optimization recommendations with confidence scores and estimated cost savings.
 
-### Key Features
+## 🏛️ Architecture Overview
 
-- **Real-Time GPU Dashboard** — Cluster overview, GPU utilization heatmaps, time-series metrics charts, live status monitoring
-- **6 Detection Rules** — Underutilized GPU, idle GPU, low memory usage, CPU starvation, stalled training, thermal spikes
-- **Optimization Recommendations** — Actionable suggestions with confidence scoring (0–100%) and dollar-denominated savings estimates
-- **Multi-Channel Alerting** — Severity filtering, deduplication windows, rate limiting, Slack and webhook adapters
-- **High-Volume Ingestion** — Validate, deduplicate, buffer, and batch-insert GPU telemetry into ClickHouse
-- **GPU Simulator** — 6 realistic behavior profiles for development without GPU hardware
+The backend is built around a **Hexagonal Architecture (Ports and Adapters)**, ensuring the core domain is completely decoupled from infrastructure concerns (HTTP, ClickHouse, Redis). 
 
----
+```mermaid
+graph TD
+    %% External
+    Agents[GPU Agents] -->|POST Telemetry| API[API Server]
+    User[Frontend Dashboard] -->|REST/JSON| API
 
-## Architecture
+    %% Backend Control Plane
+    subgraph Control Plane
+        API
+        Worker[Background Worker]
+    end
 
+    %% Infrastructure
+    subgraph Data Layer
+        ClickHouse[(ClickHouse)]
+        Redis[(Redis)]
+    end
+
+    %% Flows
+    API -->|Batch Insert| ClickHouse
+    API -->|Rate Limit / Lock| Redis
+    Worker -->|Evaluate Rules| ClickHouse
+    Worker -->|Distributed Lock| Redis
 ```
-GPU Telemetry → Ingestion (validate, dedup, buffer) → ClickHouse
-                                                         ↓
-Detection Engine (periodic eval) ← Query recent metrics ← 
-         ↓
-Inefficiency → Recommendation Engine → Recommendations
-         ↓
-Alerting Service → Slack / Webhook
-```
 
-- **Backend**: Go 1.26 (Gin), hexagonal architecture, modular monolith
-- **Frontend**: React 19, TypeScript, TailwindCSS v4, Recharts, Vite
-- **Storage**: ClickHouse (analytics), Redis (cache/dedup), Prometheus (real-time metrics)
-- **Infrastructure**: Docker Compose, Kubernetes, Helm, Terraform (GKE)
-- **Observability**: Grafana, Prometheus, structured JSON logging (zerolog)
+## 🛠️ Tech Stack
 
----
+- **Backend Development**: Go 1.26, Gin (HTTP)
+- **Frontend SPA**: React 19, TypeScript, TailwindCSS v4, Vite, Recharts
+- **OLAP Storage**: ClickHouse (Time-series telemetry and aggregations)
+- **KV Storage**: Redis (Caching, Rate Limiting, Deduplication locks)
+- **Infrastructure**: Docker, Kubernetes, Helm, Terraform
+- **Observability**: Prometheus, Grafana, OpenTelemetry (WIP)
 
-## Quick Start
+## 🚀 Local Setup
 
-### Prerequisites
-
-- Go 1.26+
-- Docker & Docker Compose
-- Node.js 22+ (for frontend)
-- Make
-
-### 1. Clone & Setup
+**Prerequisites:** Go 1.26+, Node.js 22+, Docker & Docker Compose, Make.
 
 ```bash
+# 1. Clone & Configure
 git clone https://github.com/sarkarbikram90/Obsygnal-Pulse.git
 cd Obsygnal-Pulse
 cp .env.example .env
 make setup
-```
 
-### 2. Start Infrastructure
-
-```bash
+# 2. Start Infrastructure (ClickHouse & Redis)
 make docker-up
-```
 
-This starts:
-- **ClickHouse** — `localhost:8123` (HTTP) / `localhost:9000` (native)
-- **Redis** — `localhost:6379`
-- **Prometheus** — `http://localhost:9090`
-- **Grafana** — `http://localhost:3000` (admin / obsygnal)
-
-### 3. Run Migrations
-
-```bash
+# 3. Apply Database Migrations
 make migrate-docker
-```
 
-### 4. Run the API Server
-
-```bash
+# 4. Start API Server (localhost:8080)
 make dev
-```
 
-API available at `http://localhost:8080`
-
-### 5. Run the GPU Simulator
-
-```bash
+# 5. Start Telemetry Simulator (in another terminal)
 make dev-simulator
+
+# 6. Start React Frontend (localhost:5173)
+cd web && npm install && npm run dev
 ```
 
-Generates realistic GPU telemetry (6 behavior profiles) for development without real GPU hardware.
+*Note: To run without Docker, install ClickHouse and Redis natively and use `clickhouse-client` for migrations.*
 
-### 6. Run the Frontend
+## 🚢 Deployment Setup
 
-```bash
-cd web
-npm install
-npm run dev
-```
+The application is containerized and designed for Kubernetes deployment.
+- **Dockerfiles**: Located in `deploy/docker/` (Alpine, non-root).
+- **Environment Variables**: Managed via `.env` (dev) or Kubernetes Secrets/ConfigMaps (prod).
+- **Stateless**: Both `api-server` and `worker` binaries are strictly stateless and can be autoscaled horizontally using HPA/KEDA.
 
-Dashboard available at `http://localhost:5173`
+## 🔭 Observability Stack
+
+- **Metrics**: `api-server` exposes `/api/v1/health` and `/api/v1/ready`. Prometheus `/metrics` endpoints are planned.
+- **Logging**: High-performance structured JSON logging via `zerolog`.
+- **Tracing**: Request IDs are injected via middleware (`X-Request-ID`) and threaded through logs. Full OpenTelemetry span propagation is on the roadmap.
+
+## 🧪 Testing Strategy
+
+Our testing philosophy strictly separates unit tests (mocked I/O) from integration tests (real I/O).
+- **Unit Tests**: 100% mocked infrastructure. `go test -short ./internal/...`
+- **Integration Tests**: Tested against real ClickHouse and Redis instances. `go test -tags=integration ./test/integration/...`
+- **Frontend Tests**: Vitest + React Testing Library (WIP).
+- **Run all tests**: `make test`
+
+## 🔄 CI/CD Overview
+
+GitHub Actions (`.github/workflows/ci.yml`) enforces the following gates on every Pull Request:
+1. `go vet` and `gofmt` to enforce code quality.
+2. Go Test suite execution against all packages.
+3. Node dependencies installation and ESLint validation for the frontend.
+4. Docker build validation to ensure `api-server` and `worker` compile cleanly.
+
+## 🛡️ Security Overview
+
+- **Authentication**: JWT Bearer token authentication secures all internal API endpoints (`auth.go`).
+- **Rate Limiting**: Sliding-window Redis rate limiter protects ingestion and query endpoints against abuse (`ratelimit.go`).
+- **Data Safety**: Prepared statements in ClickHouse prevent SQL Injection. CORS and Security Headers are strictly defined in `middleware.go`.
+
+## 📈 Scaling Roadmap
+
+1. **Distributed Workers**: Migrate `worker` to use Redis-backed distributed locks (`redis-lock`) to allow multiple workers to safely evaluate rules concurrently without duplicating alerts.
+2. **Pagination**: Implement cursor-based pagination for large data queries (e.g., `/gpus/metrics`).
+3. **Queueing**: Introduce NATS JetStream or Kafka between the API Server and ClickHouse to handle massive telemetry bursts beyond memory buffer capacities.
+
+## ⚙️ Operational Maturity Roadmap
+
+1. **OpenTelemetry Integration**: Instrument the ClickHouse driver and HTTP router with OpenTelemetry for distributed tracing.
+2. **Self-Monitoring**: Add Prometheus metrics tracking ingestion batch sizes, DB query latencies, and HTTP response codes.
+3. **Runbooks**: Document incident recovery procedures for ClickHouse partition failures or Redis OOM events.
 
 ---
 
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/health` | Health check |
-| `GET` | `/api/v1/ready` | Readiness probe |
-| `GET` | `/api/v1/cluster/overview` | Cluster dashboard data |
-| `GET` | `/api/v1/gpus/metrics` | GPU metric time series |
-| `POST` | `/api/v1/metrics/ingest` | Ingest metric batches |
-| `GET` | `/api/v1/ingestion/stats` | Ingestion pipeline stats |
-| `GET` | `/api/v1/inefficiencies` | List active inefficiencies |
-| `GET` | `/api/v1/recommendations` | List optimization recommendations |
-| `POST` | `/api/v1/recommendations/:id/apply` | Apply a recommendation |
-| `POST` | `/api/v1/recommendations/:id/dismiss` | Dismiss a recommendation |
-| `GET` | `/api/v1/alerts/recent` | Recent alert history |
-
-See [docs/api/README.md](docs/api/README.md) for full API reference.
-
----
-
-## Detection Rules
-
-| Rule | Severity | Trigger |
-|------|----------|---------|
-| Underutilized GPU | Medium | Avg utilization < 20% |
-| Idle GPU | High | Utilization < 2%, 0 processes |
-| Low Memory Usage | Medium | Memory utilization < 15% |
-| CPU Starvation | High | CPU > 90%, GPU < 50% |
-| Stalled Training | Critical | Compute < 5%, memory > 30%, processes > 0 |
-| Thermal Spike | Critical | Temperature > 90°C |
-
----
-
-## Development
-
-```bash
-make help          # Show all available commands
-make build         # Build all binaries (api-server, simulator, collector, worker)
-make test          # Run all tests
-make test-coverage # Run tests with coverage report
-make lint          # Run linters
-make fmt           # Format code
-make vet           # Run go vet
-```
-
----
-
-## Project Structure
-
-```
-├── cmd/                    # Application entry points
-│   ├── api-server/         # REST API server
-│   ├── collector/          # Prometheus/DCGM telemetry collector
-│   ├── worker/             # Background processing (detection pipeline)
-│   └── simulator/          # GPU telemetry generator (dev mode)
-├── internal/               # Private application code
-│   ├── domain/             # Domain models (metrics, detection, recommendation, alerting, auth, cluster)
-│   ├── ports/              # Interface definitions (hexagonal architecture)
-│   ├── adapters/           # Infrastructure adapters (ClickHouse, Redis, Slack, Webhook, K8s, Prometheus)
-│   ├── services/           # Application services (ingestion, detection, recommendation, alerting, analytics, auth)
-│   ├── api/                # HTTP handlers, middleware, DTOs, routes
-│   ├── config/             # Environment-based configuration
-│   ├── pkg/                # Shared utilities (logger, health, errors, validation, tracing)
-│   └── simulator/          # GPU simulation engine (6 behavior profiles)
-├── web/                    # React + TypeScript frontend (Vite)
-├── deploy/                 # Docker, Helm, Terraform, K8s manifests
-├── migrations/             # ClickHouse schema migrations
-├── test/                   # Integration & load tests
-├── docs/                   # ADRs, API reference, architecture, runbooks
-└── scripts/                # Development helper scripts
-```
-
----
-
-## Tech Stack
-
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| Backend | Go 1.26 + Gin | Low latency, high concurrency, small binaries |
-| Analytics DB | ClickHouse | Column-oriented, 10–100x faster analytical queries |
-| Cache/Dedup | Redis | Sub-ms latency, deduplication, connection pooling |
-| Metrics | Prometheus | Pull-based, PromQL, DCGM Exporter compatible |
-| Frontend | React 19 + TypeScript + Vite | Type safety, fast HMR, modern tooling |
-| Charts | Recharts | React-native composable chart library |
-| Styling | TailwindCSS v4 | Utility-first, co-located, dark theme |
-| Dashboards | Grafana | Standard observability UI |
-| Infrastructure | Docker + K8s + Helm + Terraform | Container orchestration, IaC |
-| CI/CD | GitHub Actions | Lint → Test → Build → Docker → Frontend pipeline |
-
----
-
-## Test Suite
-
-```
-56 unit tests across 7 packages — all passing
- 3 integration tests (gated by INTEGRATION_TEST=1)
- 2 load tests (gated by LOAD_TEST=1)
-```
-
-Run the full suite:
-
-```bash
-make test
-```
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
+*This repository follows standard Go project layout and clean architecture patterns.*
