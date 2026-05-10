@@ -19,9 +19,12 @@ import (
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/nats"
 	redisadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/redis"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	detectiondomain "github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/detection"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/recommendation"
 )
 
 func main() {
@@ -80,9 +83,29 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to start NATS consumer")
 	}
 
-	// TODO: Initialize detection/recommendation engines
-	// detectionSvc := detection.NewService(...)
-	// go detectionSvc.Run(ctx)
+	ineffRepo := clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
+	recRepo := clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
+
+	detectionSvc := detection.NewService(chAdapter, ineffRepo, redisAdapter, log, cfg.Detection)
+	recommendationSvc := recommendation.NewService(recRepo, redisAdapter, log)
+
+	// Wire detection → recommendation pipeline
+	detectionSvc.OnDetection(func(ctx context.Context, ineff detectiondomain.Inefficiency) {
+		recs, err := recommendationSvc.GenerateFromInefficiency(ctx, ineff)
+		if err != nil {
+			log.Error().Err(err).Str("inefficiency_id", ineff.ID).Msg("failed to generate recommendations")
+			return
+		}
+		if len(recs) > 0 {
+			log.Info().Int("count", len(recs)).Str("inefficiency_id", ineff.ID).Msg("generated recommendations")
+		}
+	})
+
+	go func() {
+		if err := detectionSvc.Run(ctx); err != nil && err != context.Canceled {
+			log.Error().Err(err).Msg("detection engine stopped with error")
+		}
+	}()
 
 	log.Info().Msg("worker running — waiting for shutdown signal")
 

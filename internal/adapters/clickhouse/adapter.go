@@ -348,6 +348,11 @@ func (a *Adapter) Ping(ctx context.Context) error {
 	return a.conn.Ping(ctx)
 }
 
+// Conn returns the raw ClickHouse connection.
+func (a *Adapter) Conn() driver.Conn {
+	return a.conn
+}
+
 // Close closes the ClickHouse connection.
 func (a *Adapter) Close() error {
 	return a.conn.Close()
