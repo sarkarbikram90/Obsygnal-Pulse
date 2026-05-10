@@ -13,7 +13,7 @@ import (
 
 // MetricsIngestRequest is the request body for POST /api/v1/metrics/ingest.
 type MetricsIngestRequest struct {
-	GPUMetrics []GPUMetricDTO  `json:"gpu_metrics"`
+	GPUMetrics  []GPUMetricDTO  `json:"gpu_metrics"`
 	NodeMetrics []NodeMetricDTO `json:"node_metrics,omitempty"`
 	Source      string          `json:"source"`
 }
@@ -39,13 +39,13 @@ type GPUMetricDTO struct {
 
 // NodeMetricDTO is the wire format for a node metric data point.
 type NodeMetricDTO struct {
-	ClusterID   string  `json:"cluster_id" binding:"required"`
-	NodeID      string  `json:"node_id" binding:"required"`
+	ClusterID   string    `json:"cluster_id" binding:"required"`
+	NodeID      string    `json:"node_id" binding:"required"`
 	Timestamp   time.Time `json:"timestamp" binding:"required"`
-	CPUUsage    float64 `json:"cpu_usage"`
-	MemoryUsage float64 `json:"memory_usage"`
-	DiskUsage   float64 `json:"disk_usage"`
-	GPUCount    int     `json:"gpu_count"`
+	CPUUsage    float64   `json:"cpu_usage"`
+	MemoryUsage float64   `json:"memory_usage"`
+	DiskUsage   float64   `json:"disk_usage"`
+	GPUCount    int       `json:"gpu_count"`
 }
 
 // InefficiencyResponse is the response format for inefficiency endpoints.
@@ -59,9 +59,9 @@ type InefficiencyResponse struct {
 // RecommendationResponse is the response format for recommendation endpoints.
 type RecommendationResponse struct {
 	Data       []recommendation.Recommendation `json:"data"`
-	TotalCount int                              `json:"total_count"`
-	Limit      int                              `json:"limit"`
-	Offset     int                              `json:"offset"`
+	TotalCount int                             `json:"total_count"`
+	Limit      int                             `json:"limit"`
+	Offset     int                             `json:"offset"`
 }
 
 // DismissRequest is the request body for POST /api/v1/recommendations/:id/dismiss.

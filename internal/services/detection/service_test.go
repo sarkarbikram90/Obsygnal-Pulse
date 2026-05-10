@@ -20,8 +20,12 @@ type mockMetricsRepo struct {
 	nodeMetrics []metrics.NodeMetric
 }
 
-func (m *mockMetricsRepo) InsertGPUMetrics(ctx context.Context, gm []metrics.GPUMetric) error   { return nil }
-func (m *mockMetricsRepo) InsertNodeMetrics(ctx context.Context, nm []metrics.NodeMetric) error   { return nil }
+func (m *mockMetricsRepo) InsertGPUMetrics(ctx context.Context, gm []metrics.GPUMetric) error {
+	return nil
+}
+func (m *mockMetricsRepo) InsertNodeMetrics(ctx context.Context, nm []metrics.NodeMetric) error {
+	return nil
+}
 func (m *mockMetricsRepo) QueryGPUMetrics(ctx context.Context, q ports.MetricsQuery) ([]metrics.GPUMetric, error) {
 	return m.gpuMetrics, nil
 }
@@ -67,14 +71,14 @@ type mockCache struct {
 	data map[string]interface{}
 }
 
-func newMockCache() *mockCache { return &mockCache{data: make(map[string]interface{})} }
+func newMockCache() *mockCache                                                   { return &mockCache{data: make(map[string]interface{})} }
 func (m *mockCache) Get(ctx context.Context, key string, dest interface{}) error { return nil }
 func (m *mockCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	m.data[key] = value
 	return nil
 }
-func (m *mockCache) Delete(ctx context.Context, key string) error          { return nil }
-func (m *mockCache) Exists(ctx context.Context, key string) (bool, error)  { return false, nil }
+func (m *mockCache) Delete(ctx context.Context, key string) error         { return nil }
+func (m *mockCache) Exists(ctx context.Context, key string) (bool, error) { return false, nil }
 
 func defaultDetectionConfig() config.DetectionConfig {
 	return config.DetectionConfig{

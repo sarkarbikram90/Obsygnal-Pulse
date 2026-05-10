@@ -22,12 +22,12 @@ func NewAdapter(namespace string) *Adapter {
 
 // GPUPodInfo represents a pod using GPU resources.
 type GPUPodInfo struct {
-	PodName    string
-	Namespace  string
-	NodeName   string
-	JobID      string
-	GPUCount   int
-	Labels     map[string]string
+	PodName   string
+	Namespace string
+	NodeName  string
+	JobID     string
+	GPUCount  int
+	Labels    map[string]string
 }
 
 // ListGPUPods returns all pods with GPU resource requests in the namespace.

@@ -19,17 +19,17 @@ import (
 
 // ClusterStats holds computed analytics for a cluster.
 type ClusterStats struct {
-	ClusterID           string    `json:"cluster_id"`
-	AvgGPUUtilization   float64   `json:"avg_gpu_utilization"`
-	P50GPUUtilization   float64   `json:"p50_gpu_utilization"`
-	P95GPUUtilization   float64   `json:"p95_gpu_utilization"`
-	AvgMemoryUtilization float64  `json:"avg_memory_utilization"`
-	IdleGPUCount        int       `json:"idle_gpu_count"`
-	TotalGPUHours       float64   `json:"total_gpu_hours"`
-	WastedGPUHours      float64   `json:"wasted_gpu_hours"`
-	EstimatedWasteUSD   float64   `json:"estimated_waste_usd"`
-	EfficiencyScore     float64   `json:"efficiency_score"` // 0-100
-	ComputedAt          time.Time `json:"computed_at"`
+	ClusterID            string    `json:"cluster_id"`
+	AvgGPUUtilization    float64   `json:"avg_gpu_utilization"`
+	P50GPUUtilization    float64   `json:"p50_gpu_utilization"`
+	P95GPUUtilization    float64   `json:"p95_gpu_utilization"`
+	AvgMemoryUtilization float64   `json:"avg_memory_utilization"`
+	IdleGPUCount         int       `json:"idle_gpu_count"`
+	TotalGPUHours        float64   `json:"total_gpu_hours"`
+	WastedGPUHours       float64   `json:"wasted_gpu_hours"`
+	EstimatedWasteUSD    float64   `json:"estimated_waste_usd"`
+	EfficiencyScore      float64   `json:"efficiency_score"` // 0-100
+	ComputedAt           time.Time `json:"computed_at"`
 }
 
 // Service computes cluster analytics.

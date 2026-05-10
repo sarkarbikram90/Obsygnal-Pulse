@@ -29,10 +29,10 @@ type GPUMetric struct {
 	MemoryFree  uint64 `json:"memory_free"`
 
 	// Thermal and power
-	Temperature    float64 `json:"temperature"`     // Celsius
-	PowerUsage     float64 `json:"power_usage"`      // Watts
-	PowerLimit     float64 `json:"power_limit"`      // Watts
-	FanSpeed       float64 `json:"fan_speed"`        // Percentage
+	Temperature float64 `json:"temperature"` // Celsius
+	PowerUsage  float64 `json:"power_usage"` // Watts
+	PowerLimit  float64 `json:"power_limit"` // Watts
+	FanSpeed    float64 `json:"fan_speed"`   // Percentage
 
 	// PCIe metrics
 	PCIeTxBytes uint64 `json:"pcie_tx_bytes"` // bytes/sec
@@ -92,17 +92,17 @@ func (m *GPUMetric) MemoryUsagePercent() float64 {
 
 // NodeMetric represents node-level resource metrics.
 type NodeMetric struct {
-	Timestamp     time.Time `json:"timestamp"`
-	ClusterID     string    `json:"cluster_id"`
-	NodeID        string    `json:"node_id"`
-	CPUUsage      float64   `json:"cpu_usage"`      // 0-100%
-	MemoryUsage   float64   `json:"memory_usage"`   // 0-100%
-	DiskUsage     float64   `json:"disk_usage"`      // 0-100%
-	NetworkIn     uint64    `json:"network_in"`      // bytes/sec
-	NetworkOut    uint64    `json:"network_out"`     // bytes/sec
-	GPUCount      int       `json:"gpu_count"`
-	PodCount      int       `json:"pod_count"`
-	Labels        map[string]string `json:"labels,omitempty"`
+	Timestamp   time.Time         `json:"timestamp"`
+	ClusterID   string            `json:"cluster_id"`
+	NodeID      string            `json:"node_id"`
+	CPUUsage    float64           `json:"cpu_usage"`    // 0-100%
+	MemoryUsage float64           `json:"memory_usage"` // 0-100%
+	DiskUsage   float64           `json:"disk_usage"`   // 0-100%
+	NetworkIn   uint64            `json:"network_in"`   // bytes/sec
+	NetworkOut  uint64            `json:"network_out"`  // bytes/sec
+	GPUCount    int               `json:"gpu_count"`
+	PodCount    int               `json:"pod_count"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 // MetricBatch represents a batch of metrics for efficient processing.

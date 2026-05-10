@@ -58,14 +58,14 @@ func DefaultConfig() Config {
 
 // GPUState tracks the simulated state of a single GPU.
 type GPUState struct {
-	NodeID     string
-	GPUID      string
-	GPUIndex   int
-	Model      string
-	MemoryMB   uint64
-	Profile    GPUProfile
-	JobID      string
-	mu         sync.RWMutex
+	NodeID   string
+	GPUID    string
+	GPUIndex int
+	Model    string
+	MemoryMB uint64
+	Profile  GPUProfile
+	JobID    string
+	mu       sync.RWMutex
 }
 
 // GPUProfile defines the behavior pattern for a simulated GPU.
@@ -74,10 +74,10 @@ type GPUProfile string
 const (
 	ProfileNormal        GPUProfile = "normal"        // 70-95% utilization
 	ProfileUnderutilized GPUProfile = "underutilized" // 5-20% utilization
-	ProfileIdle          GPUProfile = "idle"           // 0% utilization
-	ProfileOOMPressure   GPUProfile = "oom_pressure"   // Memory approaching limit
-	ProfileBursty        GPUProfile = "bursty"         // Alternating high/low
-	ProfileStalled       GPUProfile = "stalled"        // Was high, now stuck low
+	ProfileIdle          GPUProfile = "idle"          // 0% utilization
+	ProfileOOMPressure   GPUProfile = "oom_pressure"  // Memory approaching limit
+	ProfileBursty        GPUProfile = "bursty"        // Alternating high/low
+	ProfileStalled       GPUProfile = "stalled"       // Was high, now stuck low
 )
 
 // Simulator generates fake GPU telemetry data.
@@ -305,9 +305,9 @@ func (s *Simulator) generateGPUMetric(gpu *GPUState, ts time.Time) metrics.GPUMe
 		RunningProcesses:  processes,
 		JobID:             gpu.JobID,
 		Labels: map[string]string{
-			"profile":    string(gpu.Profile),
-			"simulated":  "true",
-			"cluster":    s.config.ClusterID,
+			"profile":   string(gpu.Profile),
+			"simulated": "true",
+			"cluster":   s.config.ClusterID,
 		},
 	}
 }

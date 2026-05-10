@@ -31,10 +31,10 @@ import (
 
 // Service manages alert routing, deduplication, and delivery.
 type Service struct {
-	alertRepo   ports.AlertRepository
-	notifiers   []ports.Notifier
-	log         *logger.Logger
-	cfg         config.AlertingConfig
+	alertRepo ports.AlertRepository
+	notifiers []ports.Notifier
+	log       *logger.Logger
+	cfg       config.AlertingConfig
 
 	// Deduplication: track last alert time per key
 	dedupMu   sync.RWMutex
@@ -46,10 +46,10 @@ type Service struct {
 	rateReset time.Time
 
 	// Stats
-	totalFired     int64
+	totalFired      int64
 	totalSuppressed int64
-	totalDelivered int64
-	totalFailed    int64
+	totalDelivered  int64
+	totalFailed     int64
 }
 
 // NewService creates a new alerting service.

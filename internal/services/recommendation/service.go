@@ -1,13 +1,14 @@
 // Package recommendation implements the optimization recommendation engine.
 //
 // Architecture:
-//   The recommendation engine transforms detected inefficiencies into actionable
-//   optimization suggestions. Each inefficiency type maps to one or more
-//   recommendation generators. Each generator produces a Recommendation with:
-//   - A confidence score (0.0-1.0) based on data quality and pattern strength
-//   - Estimated cost savings (hourly and monthly)
-//   - Affected metrics for drill-down
-//   - Human-readable explanation
+//
+//	The recommendation engine transforms detected inefficiencies into actionable
+//	optimization suggestions. Each inefficiency type maps to one or more
+//	recommendation generators. Each generator produces a Recommendation with:
+//	- A confidence score (0.0-1.0) based on data quality and pattern strength
+//	- Estimated cost savings (hourly and monthly)
+//	- Affected metrics for drill-down
+//	- Human-readable explanation
 //
 // Design decisions:
 //   - Recommendations are generated reactively from detection events (not polled)
@@ -33,10 +34,10 @@ import (
 
 // GPUPricing holds cost data for GPU types.
 type GPUPricing struct {
-	Model           string
-	CostPerHourUSD  float64
-	MemoryGB        float64
-	TDPWatts        float64
+	Model          string
+	CostPerHourUSD float64
+	MemoryGB       float64
+	TDPWatts       float64
 }
 
 // DefaultPricing returns pricing for common GPU types.
@@ -46,17 +47,17 @@ func DefaultPricing() map[string]GPUPricing {
 		"NVIDIA A100-SXM4-40GB": {Model: "A100-40GB", CostPerHourUSD: 2.21, MemoryGB: 40, TDPWatts: 400},
 		"NVIDIA H100-SXM5-80GB": {Model: "H100-80GB", CostPerHourUSD: 5.12, MemoryGB: 80, TDPWatts: 700},
 		"NVIDIA V100-SXM2-32GB": {Model: "V100-32GB", CostPerHourUSD: 1.46, MemoryGB: 32, TDPWatts: 300},
-		"default":               {Model: "Generic",   CostPerHourUSD: 2.50, MemoryGB: 40, TDPWatts: 350},
+		"default":               {Model: "Generic", CostPerHourUSD: 2.50, MemoryGB: 40, TDPWatts: 350},
 	}
 }
 
 // Service generates optimization recommendations from detected inefficiencies.
 type Service struct {
-	recRepo   ports.RecommendationRepository
-	cache     ports.CacheStore
-	log       *logger.Logger
-	pricing   map[string]GPUPricing
-	recTTL    time.Duration
+	recRepo ports.RecommendationRepository
+	cache   ports.CacheStore
+	log     *logger.Logger
+	pricing map[string]GPUPricing
+	recTTL  time.Duration
 
 	totalGenerated int64
 	totalDismissed int64
@@ -190,10 +191,10 @@ func (s *Service) genReduceAllocation(ineff detection.Inefficiency) *recommendat
 	}
 
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryReduceAllocation,
-		Title:       fmt.Sprintf("Reduce GPU allocation for %s", ineff.GPUID),
-		Description: fmt.Sprintf("GPU %s is averaging %.1f%% utilization. Consider reducing the GPU count or switching to a smaller GPU type.", ineff.GPUID, ineff.CurrentValue),
-		Explanation: fmt.Sprintf("Over the evaluation window, GPU compute utilization averaged %.1f%%, which is %.1f percentage points below the %.1f%% threshold. This suggests the workload does not fully utilize the allocated GPU resources. Reducing allocation would save approximately $%.2f/month.", ineff.CurrentValue, ineff.ThresholdValue-ineff.CurrentValue, ineff.ThresholdValue, savings.CostPerMonthUSD),
+		Category:         recommendation.CategoryReduceAllocation,
+		Title:            fmt.Sprintf("Reduce GPU allocation for %s", ineff.GPUID),
+		Description:      fmt.Sprintf("GPU %s is averaging %.1f%% utilization. Consider reducing the GPU count or switching to a smaller GPU type.", ineff.GPUID, ineff.CurrentValue),
+		Explanation:      fmt.Sprintf("Over the evaluation window, GPU compute utilization averaged %.1f%%, which is %.1f percentage points below the %.1f%% threshold. This suggests the workload does not fully utilize the allocated GPU resources. Reducing allocation would save approximately $%.2f/month.", ineff.CurrentValue, ineff.ThresholdValue-ineff.CurrentValue, ineff.ThresholdValue, savings.CostPerMonthUSD),
 		ConfidenceScore:  confidence,
 		EstimatedSavings: savings,
 		AffectedMetrics:  []string{"gpu_utilization"},
@@ -208,10 +209,10 @@ func (s *Service) genIncreaseBatchSize(ineff detection.Inefficiency) *recommenda
 	confidence := s.calculateConfidence(ineff.CurrentValue, ineff.ThresholdValue, 0.2)
 
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryIncreaseBatchSize,
-		Title:       fmt.Sprintf("Increase batch size for workload on %s", ineff.GPUID),
-		Description: fmt.Sprintf("GPU %s has low utilization (%.1f%%). Increasing the training batch size could improve GPU throughput.", ineff.GPUID, ineff.CurrentValue),
-		Explanation: "Low GPU utilization often indicates the batch size is too small to saturate the GPU compute pipeline. Increasing batch size typically improves training throughput linearly until GPU memory becomes the bottleneck.",
+		Category:        recommendation.CategoryIncreaseBatchSize,
+		Title:           fmt.Sprintf("Increase batch size for workload on %s", ineff.GPUID),
+		Description:     fmt.Sprintf("GPU %s has low utilization (%.1f%%). Increasing the training batch size could improve GPU throughput.", ineff.GPUID, ineff.CurrentValue),
+		Explanation:     "Low GPU utilization often indicates the batch size is too small to saturate the GPU compute pipeline. Increasing batch size typically improves training throughput linearly until GPU memory becomes the bottleneck.",
 		ConfidenceScore: confidence,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			GPUHoursPerMonth: 50, // Conservative estimate
@@ -251,10 +252,10 @@ func (s *Service) genRightSizeMemory(ineff detection.Inefficiency) *recommendati
 	memWastePercent := (100 - ineff.CurrentValue) / 100
 
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryRightSizeMemory,
-		Title:       fmt.Sprintf("Right-size GPU memory for %s", ineff.GPUID),
-		Description: fmt.Sprintf("GPU %s is only using %.1f%% of available memory. A GPU with less memory would suffice.", ineff.GPUID, ineff.CurrentValue),
-		Explanation: fmt.Sprintf("Memory utilization at %.1f%% means %.0f%% of allocated GPU memory is wasted. Moving to a smaller GPU (e.g., 40GB instead of 80GB) could reduce costs while maintaining performance.", ineff.CurrentValue, memWastePercent*100),
+		Category:        recommendation.CategoryRightSizeMemory,
+		Title:           fmt.Sprintf("Right-size GPU memory for %s", ineff.GPUID),
+		Description:     fmt.Sprintf("GPU %s is only using %.1f%% of available memory. A GPU with less memory would suffice.", ineff.GPUID, ineff.CurrentValue),
+		Explanation:     fmt.Sprintf("Memory utilization at %.1f%% means %.0f%% of allocated GPU memory is wasted. Moving to a smaller GPU (e.g., 40GB instead of 80GB) could reduce costs while maintaining performance.", ineff.CurrentValue, memWastePercent*100),
 		ConfidenceScore: s.calculateConfidence(ineff.CurrentValue, ineff.ThresholdValue, 0.25),
 		EstimatedSavings: recommendation.EstimatedSavings{
 			CostPerHourUSD:  pricing.CostPerHourUSD * 0.4, // Approximate savings from downsizing
@@ -271,10 +272,10 @@ func (s *Service) genRightSizeMemory(ineff detection.Inefficiency) *recommendati
 
 func (s *Service) genInvestigateCPU(ineff detection.Inefficiency) *recommendation.Recommendation {
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryInvestigateCPU,
-		Title:       fmt.Sprintf("Investigate CPU bottleneck on %s", ineff.NodeID),
-		Description: fmt.Sprintf("Node %s has CPU usage at %.1f%% while GPUs are underutilized. Data preprocessing or loading may be the bottleneck.", ineff.NodeID, ineff.CurrentValue),
-		Explanation: "When CPU is saturated but GPUs are idle or underutilized, the CPU is likely a bottleneck — commonly from data loading, preprocessing, or augmentation. Solutions include: increasing dataloader workers, using NVIDIA DALI for GPU-accelerated preprocessing, pre-processing data offline, or adding CPU resources.",
+		Category:        recommendation.CategoryInvestigateCPU,
+		Title:           fmt.Sprintf("Investigate CPU bottleneck on %s", ineff.NodeID),
+		Description:     fmt.Sprintf("Node %s has CPU usage at %.1f%% while GPUs are underutilized. Data preprocessing or loading may be the bottleneck.", ineff.NodeID, ineff.CurrentValue),
+		Explanation:     "When CPU is saturated but GPUs are idle or underutilized, the CPU is likely a bottleneck — commonly from data loading, preprocessing, or augmentation. Solutions include: increasing dataloader workers, using NVIDIA DALI for GPU-accelerated preprocessing, pre-processing data offline, or adding CPU resources.",
 		ConfidenceScore: 0.80,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			GPUHoursPerMonth: 200, // Potential recovery from idle GPU time
@@ -289,10 +290,10 @@ func (s *Service) genInvestigateStalledTraining(ineff detection.Inefficiency) *r
 	pricing := s.getGPUPricing(ineff.Labels)
 
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryInvestigateCPU,
-		Title:       fmt.Sprintf("Stalled training loop on %s", ineff.GPUID),
-		Description: fmt.Sprintf("GPU %s shows near-zero compute with memory still allocated and processes running. The training loop may be hung.", ineff.GPUID),
-		Explanation: "This pattern typically indicates a deadlock in distributed training, a hung I/O operation, or an infinite loop in preprocessing. Immediate investigation is recommended as the GPU is burning cost without progress.",
+		Category:        recommendation.CategoryInvestigateCPU,
+		Title:           fmt.Sprintf("Stalled training loop on %s", ineff.GPUID),
+		Description:     fmt.Sprintf("GPU %s shows near-zero compute with memory still allocated and processes running. The training loop may be hung.", ineff.GPUID),
+		Explanation:     "This pattern typically indicates a deadlock in distributed training, a hung I/O operation, or an infinite loop in preprocessing. Immediate investigation is recommended as the GPU is burning cost without progress.",
 		ConfidenceScore: 0.90,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			CostPerHourUSD:  pricing.CostPerHourUSD,
@@ -308,10 +309,10 @@ func (s *Service) genInvestigateStalledTraining(ineff detection.Inefficiency) *r
 
 func (s *Service) genInvestigateThermal(ineff detection.Inefficiency) *recommendation.Recommendation {
 	return &recommendation.Recommendation{
-		Category:    recommendation.CategoryInvestigateCPU, // Re-using closest category
-		Title:       fmt.Sprintf("Critical temperature on %s", ineff.GPUID),
-		Description: fmt.Sprintf("GPU %s temperature peaked at %.1f°C. This risks thermal throttling and hardware damage.", ineff.GPUID, ineff.CurrentValue),
-		Explanation: "Sustained high temperatures cause thermal throttling (reducing performance) and can permanently damage GPU hardware. Check datacenter cooling, GPU fan health, and workload characteristics. Consider reducing power limits or improving airflow.",
+		Category:        recommendation.CategoryInvestigateCPU, // Re-using closest category
+		Title:           fmt.Sprintf("Critical temperature on %s", ineff.GPUID),
+		Description:     fmt.Sprintf("GPU %s temperature peaked at %.1f°C. This risks thermal throttling and hardware damage.", ineff.GPUID, ineff.CurrentValue),
+		Explanation:     "Sustained high temperatures cause thermal throttling (reducing performance) and can permanently damage GPU hardware. Check datacenter cooling, GPU fan health, and workload characteristics. Consider reducing power limits or improving airflow.",
 		ConfidenceScore: 0.95,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			PowerWatts: 100, // Potential power savings from reducing thermal load

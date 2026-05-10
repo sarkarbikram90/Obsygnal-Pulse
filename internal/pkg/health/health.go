@@ -26,11 +26,11 @@ type Check struct {
 
 // Report represents the overall health of the system.
 type Report struct {
-	Status    Status            `json:"status"`
-	Checks   []Check           `json:"checks"`
-	Version   string           `json:"version"`
-	Uptime    time.Duration    `json:"uptime_seconds"`
-	Timestamp time.Time         `json:"timestamp"`
+	Status    Status        `json:"status"`
+	Checks    []Check       `json:"checks"`
+	Version   string        `json:"version"`
+	Uptime    time.Duration `json:"uptime_seconds"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // Checker is a function that performs a health check.
@@ -38,8 +38,8 @@ type Checker func(ctx context.Context) error
 
 // Registry manages health check registrations.
 type Registry struct {
-	mu       sync.RWMutex
-	checkers map[string]Checker
+	mu        sync.RWMutex
+	checkers  map[string]Checker
 	startTime time.Time
 	version   string
 }

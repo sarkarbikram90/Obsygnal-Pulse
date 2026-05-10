@@ -9,23 +9,23 @@ import "time"
 
 // AlertRule defines a configurable alert rule.
 type AlertRule struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Enabled     bool          `json:"enabled"`
-	Severity    string        `json:"severity"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Enabled     bool           `json:"enabled"`
+	Severity    string         `json:"severity"`
 	Condition   AlertCondition `json:"condition"`
-	Channels    []string      `json:"channels"` // "slack", "webhook", "email"
-	Cooldown    time.Duration `json:"cooldown"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
+	Channels    []string       `json:"channels"` // "slack", "webhook", "email"
+	Cooldown    time.Duration  `json:"cooldown"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // AlertCondition defines what triggers the alert.
 type AlertCondition struct {
-	MetricName string  `json:"metric_name"`  // e.g., "gpu_utilization"
-	Operator   string  `json:"operator"`     // "lt", "gt", "eq"
-	Threshold  float64 `json:"threshold"`
+	MetricName string        `json:"metric_name"` // e.g., "gpu_utilization"
+	Operator   string        `json:"operator"`    // "lt", "gt", "eq"
+	Threshold  float64       `json:"threshold"`
 	Duration   time.Duration `json:"duration"` // Condition must persist for this duration
 }
 

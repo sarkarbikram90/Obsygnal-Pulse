@@ -5,14 +5,14 @@ import "time"
 
 // Cluster represents a GPU compute cluster.
 type Cluster struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Provider    string            `json:"provider"` // "gcp", "aws", "azure", "on-prem"
-	Region      string            `json:"region"`
-	Nodes       []Node            `json:"nodes"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	IsActive    bool              `json:"is_active"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Provider  string            `json:"provider"` // "gcp", "aws", "azure", "on-prem"
+	Region    string            `json:"region"`
+	Nodes     []Node            `json:"nodes"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	CreatedAt time.Time         `json:"created_at"`
+	IsActive  bool              `json:"is_active"`
 }
 
 // Node represents a compute node in a cluster.
@@ -33,9 +33,9 @@ type Node struct {
 type NodeStatus string
 
 const (
-	NodeStatusReady      NodeStatus = "ready"
-	NodeStatusNotReady   NodeStatus = "not_ready"
-	NodeStatusDraining   NodeStatus = "draining"
+	NodeStatusReady       NodeStatus = "ready"
+	NodeStatusNotReady    NodeStatus = "not_ready"
+	NodeStatusDraining    NodeStatus = "draining"
 	NodeStatusMaintenance NodeStatus = "maintenance"
 )
 

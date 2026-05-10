@@ -14,10 +14,10 @@ import (
 
 // mockMetricsRepo is a test double for MetricsRepository.
 type mockMetricsRepo struct {
-	mu             sync.Mutex
-	gpuMetrics     []metrics.GPUMetric
-	nodeMetrics    []metrics.NodeMetric
-	insertErr      error
+	mu              sync.Mutex
+	gpuMetrics      []metrics.GPUMetric
+	nodeMetrics     []metrics.NodeMetric
+	insertErr       error
 	insertCallCount int
 }
 
@@ -60,8 +60,8 @@ func (m *mockMetricsRepo) GetClusterOverview(ctx context.Context, clusterID stri
 
 // mockCache is a test double for CacheStore.
 type mockCache struct {
-	mu    sync.Mutex
-	data  map[string]bool
+	mu     sync.Mutex
+	data   map[string]bool
 	setErr error
 }
 

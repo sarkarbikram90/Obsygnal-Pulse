@@ -32,16 +32,16 @@ type Service struct {
 	log         *logger.Logger
 
 	// Buffered writer state
-	gpuBuffer    []metrics.GPUMetric
-	nodeBuffer   []metrics.NodeMetric
-	bufferMu     sync.Mutex
-	batchSize    int
+	gpuBuffer     []metrics.GPUMetric
+	nodeBuffer    []metrics.NodeMetric
+	bufferMu      sync.Mutex
+	batchSize     int
 	flushInterval time.Duration
 
 	// Metrics
-	totalReceived  int64
-	totalInserted  int64
-	totalDropped   int64
+	totalReceived   int64
+	totalInserted   int64
+	totalDropped    int64
 	totalDuplicates int64
 }
 

@@ -28,17 +28,17 @@ func NewAdapter(webhookURL string) *Adapter {
 
 // slackMessage represents the Slack webhook payload.
 type slackMessage struct {
-	Text        string        `json:"text"`
-	Attachments []attachment  `json:"attachments,omitempty"`
+	Text        string       `json:"text"`
+	Attachments []attachment `json:"attachments,omitempty"`
 }
 
 type attachment struct {
-	Color    string  `json:"color"`
-	Title    string  `json:"title"`
-	Text     string  `json:"text"`
-	Fields   []field `json:"fields,omitempty"`
-	Footer   string  `json:"footer"`
-	Ts       int64   `json:"ts"`
+	Color  string  `json:"color"`
+	Title  string  `json:"title"`
+	Text   string  `json:"text"`
+	Fields []field `json:"fields,omitempty"`
+	Footer string  `json:"footer"`
+	Ts     int64   `json:"ts"`
 }
 
 type field struct {

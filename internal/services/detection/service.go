@@ -1,24 +1,25 @@
 // Package detection implements the inefficiency detection engine.
 //
 // Architecture:
-//   The detection engine follows a rule-based evaluation pattern.
-//   Each rule is a pure function: ([]GPUMetric, []NodeMetric) → []Inefficiency
-//   Rules are registered in a RuleRegistry and evaluated on a configurable interval.
+//
+//	The detection engine follows a rule-based evaluation pattern.
+//	Each rule is a pure function: ([]GPUMetric, []NodeMetric) → []Inefficiency
+//	Rules are registered in a RuleRegistry and evaluated on a configurable interval.
 //
 // Why rule-based instead of ML?
-//   1. Interpretable: operators can understand exactly why an alert fired
-//   2. Tunable: threshold adjustments don't require retraining
-//   3. Debuggable: rules produce deterministic output for the same input
-//   4. Fast: rule evaluation is O(n) in the number of metrics, no model inference
-//   5. Foundation: rule outputs become training data for future ML models
+//  1. Interpretable: operators can understand exactly why an alert fired
+//  2. Tunable: threshold adjustments don't require retraining
+//  3. Debuggable: rules produce deterministic output for the same input
+//  4. Fast: rule evaluation is O(n) in the number of metrics, no model inference
+//  5. Foundation: rule outputs become training data for future ML models
 //
 // The engine runs as a background worker that:
-//   1. Pulls recent metrics from ClickHouse (last evaluation window)
-//   2. Evaluates all enabled rules against those metrics
-//   3. Deduplicates against currently active inefficiencies
-//   4. Persists new inefficiencies to ClickHouse
-//   5. Checks if any previously active inefficiencies are now resolved
-//   6. Emits events for the alerting and recommendation engines
+//  1. Pulls recent metrics from ClickHouse (last evaluation window)
+//  2. Evaluates all enabled rules against those metrics
+//  3. Deduplicates against currently active inefficiencies
+//  4. Persists new inefficiencies to ClickHouse
+//  5. Checks if any previously active inefficiencies are now resolved
+//  6. Emits events for the alerting and recommendation engines
 package detection
 
 import (
@@ -42,22 +43,22 @@ type RuleFunc func(gpuMetrics []metrics.GPUMetric, nodeMetrics []metrics.NodeMet
 
 // Service orchestrates the inefficiency detection pipeline.
 type Service struct {
-	metricsRepo  ports.MetricsRepository
-	ineffRepo    ports.InefficiencyRepository
-	cache        ports.CacheStore
-	log          *logger.Logger
-	cfg          config.DetectionConfig
+	metricsRepo ports.MetricsRepository
+	ineffRepo   ports.InefficiencyRepository
+	cache       ports.CacheStore
+	log         *logger.Logger
+	cfg         config.DetectionConfig
 
-	rules    []registeredRule
-	rulesMu  sync.RWMutex
+	rules   []registeredRule
+	rulesMu sync.RWMutex
 
 	// Tracking active inefficiencies for dedup
 	activeIneffs map[string]*detection.Inefficiency // key: type:gpu_id or type:node_id
 	activeMu     sync.RWMutex
 
 	// Listeners get notified when new inefficiencies are detected
-	listeners    []func(ctx context.Context, ineff detection.Inefficiency)
-	listenersMu  sync.RWMutex
+	listeners   []func(ctx context.Context, ineff detection.Inefficiency)
+	listenersMu sync.RWMutex
 
 	// Stats
 	totalEvaluations int64
@@ -66,8 +67,8 @@ type Service struct {
 }
 
 type registeredRule struct {
-	rule    detection.DetectionRule
-	fn      RuleFunc
+	rule detection.DetectionRule
+	fn   RuleFunc
 }
 
 // NewService creates a new detection service.

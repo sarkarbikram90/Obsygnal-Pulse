@@ -5,13 +5,13 @@ import "time"
 
 // User represents a platform user.
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"` // Never serialized
-	DisplayName  string    `json:"display_name"`
-	Role         Role      `json:"role"`
-	IsActive     bool      `json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	PasswordHash string     `json:"-"` // Never serialized
+	DisplayName  string     `json:"display_name"`
+	Role         Role       `json:"role"`
+	IsActive     bool       `json:"is_active"`
+	CreatedAt    time.Time  `json:"created_at"`
 	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
 }
 
@@ -19,23 +19,23 @@ type User struct {
 type Role string
 
 const (
-	RoleViewer  Role = "viewer"  // Read-only access to dashboards
-	RoleEditor  Role = "editor"  // Can dismiss/apply recommendations
-	RoleAdmin   Role = "admin"   // Full access including user management
+	RoleViewer Role = "viewer" // Read-only access to dashboards
+	RoleEditor Role = "editor" // Can dismiss/apply recommendations
+	RoleAdmin  Role = "admin"  // Full access including user management
 )
 
 // Permission defines what actions a role can perform.
 type Permission string
 
 const (
-	PermViewDashboard       Permission = "view:dashboard"
-	PermViewMetrics         Permission = "view:metrics"
-	PermViewInefficiencies  Permission = "view:inefficiencies"
-	PermViewRecommendations Permission = "view:recommendations"
+	PermViewDashboard         Permission = "view:dashboard"
+	PermViewMetrics           Permission = "view:metrics"
+	PermViewInefficiencies    Permission = "view:inefficiencies"
+	PermViewRecommendations   Permission = "view:recommendations"
 	PermDismissRecommendation Permission = "dismiss:recommendation"
 	PermApplyRecommendation   Permission = "apply:recommendation"
-	PermManageAlerts        Permission = "manage:alerts"
-	PermManageUsers         Permission = "manage:users"
+	PermManageAlerts          Permission = "manage:alerts"
+	PermManageUsers           Permission = "manage:users"
 )
 
 // RolePermissions maps roles to their allowed permissions.

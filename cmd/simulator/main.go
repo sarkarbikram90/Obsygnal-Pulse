@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/simulator"
 	"github.com/obsygnal/obsygnal-pulse/internal/config"
 	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
 	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
+	"github.com/obsygnal/obsygnal-pulse/internal/simulator"
 )
 
 func main() {

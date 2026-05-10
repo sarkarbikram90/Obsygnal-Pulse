@@ -42,19 +42,19 @@ type MetricsQuery struct {
 
 // ClusterOverview contains aggregated cluster statistics.
 type ClusterOverview struct {
-	ClusterID        string    `json:"cluster_id"`
-	TotalNodes       int       `json:"total_nodes"`
-	HealthyNodes     int       `json:"healthy_nodes"`
-	TotalGPUs        int       `json:"total_gpus"`
-	ActiveGPUs       int       `json:"active_gpus"`
-	IdleGPUs         int       `json:"idle_gpus"`
-	AvgUtilization   float64   `json:"avg_utilization"`
-	AvgMemoryUsage   float64   `json:"avg_memory_usage"`
-	ActiveJobs       int       `json:"active_jobs"`
-	FailedJobs24h    int       `json:"failed_jobs_24h"`
-	InefficiencyScore float64  `json:"inefficiency_score"`
-	EstimatedWaste   float64   `json:"estimated_waste_usd"`
-	Timestamp        time.Time `json:"timestamp"`
+	ClusterID         string    `json:"cluster_id"`
+	TotalNodes        int       `json:"total_nodes"`
+	HealthyNodes      int       `json:"healthy_nodes"`
+	TotalGPUs         int       `json:"total_gpus"`
+	ActiveGPUs        int       `json:"active_gpus"`
+	IdleGPUs          int       `json:"idle_gpus"`
+	AvgUtilization    float64   `json:"avg_utilization"`
+	AvgMemoryUsage    float64   `json:"avg_memory_usage"`
+	ActiveJobs        int       `json:"active_jobs"`
+	FailedJobs24h     int       `json:"failed_jobs_24h"`
+	InefficiencyScore float64   `json:"inefficiency_score"`
+	EstimatedWaste    float64   `json:"estimated_waste_usd"`
+	Timestamp         time.Time `json:"timestamp"`
 }
 
 // MetricsCollector defines the contract for collecting metrics from external sources.

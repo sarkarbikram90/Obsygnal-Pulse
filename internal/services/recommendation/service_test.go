@@ -16,7 +16,9 @@ type mockRecRepo struct {
 	recs []recommendation.Recommendation
 }
 
-func (m *mockRecRepo) Insert(ctx context.Context, rec *recommendation.Recommendation) error { return nil }
+func (m *mockRecRepo) Insert(ctx context.Context, rec *recommendation.Recommendation) error {
+	return nil
+}
 func (m *mockRecRepo) InsertBatch(ctx context.Context, recs []recommendation.Recommendation) error {
 	m.recs = append(m.recs, recs...)
 	return nil
@@ -28,15 +30,19 @@ func (m *mockRecRepo) ListActive(ctx context.Context, clusterID string, limit, o
 	return m.recs, nil
 }
 func (m *mockRecRepo) Dismiss(ctx context.Context, id, dismissedBy, reason string) error { return nil }
-func (m *mockRecRepo) Apply(ctx context.Context, id string) error                         { return nil }
-func (m *mockRecRepo) CountActive(ctx context.Context, clusterID string) (int, error)     { return len(m.recs), nil }
+func (m *mockRecRepo) Apply(ctx context.Context, id string) error                        { return nil }
+func (m *mockRecRepo) CountActive(ctx context.Context, clusterID string) (int, error) {
+	return len(m.recs), nil
+}
 
 type mockCache struct{}
 
-func (m *mockCache) Get(ctx context.Context, key string, dest interface{}) error             { return nil }
-func (m *mockCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error { return nil }
-func (m *mockCache) Delete(ctx context.Context, key string) error                            { return nil }
-func (m *mockCache) Exists(ctx context.Context, key string) (bool, error)                    { return false, nil }
+func (m *mockCache) Get(ctx context.Context, key string, dest interface{}) error { return nil }
+func (m *mockCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	return nil
+}
+func (m *mockCache) Delete(ctx context.Context, key string) error         { return nil }
+func (m *mockCache) Exists(ctx context.Context, key string) (bool, error) { return false, nil }
 
 // ---- Tests ----
 
