@@ -103,13 +103,3 @@ func SecurityHeaders() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// RateLimiter provides basic rate limiting.
-// For production, use a Redis-backed token bucket or leaky bucket implementation.
-func RateLimiter(requestsPerMinute int) gin.HandlerFunc {
-	// Simplified for MVP — production should use Redis-backed rate limiting
-	return func(c *gin.Context) {
-		// TODO: Implement Redis-backed rate limiting
-		c.Next()
-	}
-}

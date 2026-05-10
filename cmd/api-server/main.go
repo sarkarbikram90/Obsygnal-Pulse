@@ -13,8 +13,7 @@ import (
 
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/clickhouse"
 	redisadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/redis"
-	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/handlers"
-	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/middleware"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/routes"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
@@ -81,30 +80,14 @@ func main() {
 
 	router := gin.New()
 
-	// Global middleware
-	router.Use(middleware.RequestID())
-	router.Use(middleware.Logger(log))
-	router.Use(middleware.Recovery(log))
-	router.Use(middleware.CORS())
-	router.Use(middleware.SecurityHeaders())
-
-	// API routes
-	api := router.Group("/api/v1")
-	{
-		// Health & readiness
-		api.GET("/health", handlers.HealthCheck(healthRegistry))
-		api.GET("/ready", handlers.ReadinessCheck(healthRegistry))
-
-		// Cluster
-		api.GET("/cluster/overview", handlers.ClusterOverview(chAdapter))
-
-		// Metrics
-		api.GET("/gpus/metrics", handlers.GPUMetrics(chAdapter))
-		api.POST("/metrics/ingest", handlers.IngestMetrics(ingestionSvc))
-
-		// Ingestion stats
-		api.GET("/ingestion/stats", handlers.IngestionStats(ingestionSvc))
-	}
+	routes.Register(router, routes.Deps{
+		Log:          log,
+		Registry:     healthRegistry,
+		MetricsRepo:  chAdapter,
+		IngestionSvc: ingestionSvc,
+		RedisClient:  redisAdapter.Client(),
+		JWTSecret:    "obsygnal-pulse-secret-mvp", // TODO: Move to config
+	})
 
 	// Start HTTP server
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

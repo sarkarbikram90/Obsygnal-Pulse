@@ -19,6 +19,7 @@ type Adapter struct {
 	log    *logger.Logger
 }
 
+
 // NewAdapter creates a new Redis adapter.
 func NewAdapter(cfg config.RedisConfig, log *logger.Logger) (*Adapter, error) {
 	client := redis.NewClient(&redis.Options{
