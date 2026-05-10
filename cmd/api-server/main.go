@@ -22,6 +22,7 @@ import (
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
 
@@ -85,13 +86,15 @@ func main() {
 
 	router := gin.New()
 
+	authService := authsvc.NewService("obsygnal-pulse-secret-mvp", time.Hour, log)
+
 	routes.Register(router, routes.Deps{
 		Log:          log,
 		Registry:     healthRegistry,
 		MetricsRepo:  chAdapter,
 		IngestionSvc: ingestionSvc,
 		RedisClient:  redisAdapter.Client(),
-		JWTSecret:    "obsygnal-pulse-secret-mvp", // TODO: Move to config
+		AuthService:  authService,
 	})
 
 	// Start HTTP server

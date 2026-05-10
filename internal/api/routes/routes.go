@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
+	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/handlers"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/middleware"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
@@ -27,7 +28,7 @@ type Deps struct {
 	MetricsRepo  ports.MetricsRepository
 	IngestionSvc *ingestion.Service
 	RedisClient  *redis.Client
-	JWTSecret    string
+	AuthService  *authsvc.Service
 }
 
 // Register sets up all API routes on the provided Gin engine.
@@ -57,8 +58,8 @@ func Register(r *gin.Engine, deps Deps) {
 
 		// Protected endpoints
 		protected := v1.Group("")
-		if deps.JWTSecret != "" {
-			protected.Use(middleware.AuthRequired(deps.Log, deps.JWTSecret))
+		if deps.AuthService != nil {
+			protected.Use(middleware.AuthRequired(deps.Log, deps.AuthService))
 		}
 
 		{
