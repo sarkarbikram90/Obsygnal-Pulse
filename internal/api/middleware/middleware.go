@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 )
 
 // RequestID injects a unique request ID into each request.

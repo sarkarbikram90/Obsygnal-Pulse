@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/detection"
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/recommendation"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/recommendation"
 )
 
 // InefficiencyRepository defines persistence for detected inefficiencies.

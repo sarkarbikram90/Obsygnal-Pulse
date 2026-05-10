@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/health"
-	"github.com/obsygnal/obsygnal-pulse/internal/ports"
-	"github.com/obsygnal/obsygnal-pulse/internal/services/ingestion"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
 
 // HealthCheck returns a handler for health check endpoints.

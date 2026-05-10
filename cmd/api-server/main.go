@@ -11,14 +11,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/adapters/clickhouse"
-	redisadapter "github.com/obsygnal/obsygnal-pulse/internal/adapters/redis"
-	"github.com/obsygnal/obsygnal-pulse/internal/api/handlers"
-	"github.com/obsygnal/obsygnal-pulse/internal/api/middleware"
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/health"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
-	"github.com/obsygnal/obsygnal-pulse/internal/services/ingestion"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/clickhouse"
+	redisadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/redis"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/handlers"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/middleware"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
 
 const version = "0.1.0"

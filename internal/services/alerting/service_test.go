@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/detection"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
-	"github.com/obsygnal/obsygnal-pulse/internal/ports"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 )
 
 // ---- Mocks ----

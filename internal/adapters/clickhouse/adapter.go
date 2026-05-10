@@ -9,10 +9,10 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
-	"github.com/obsygnal/obsygnal-pulse/internal/ports"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 )
 
 // Adapter implements ports.MetricsRepository for ClickHouse.

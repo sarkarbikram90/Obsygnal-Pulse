@@ -1,4 +1,4 @@
-module github.com/obsygnal/obsygnal-pulse
+module github.com/sarkarbikram90/Obsygnal-Pulse
 
 go 1.26.2
 

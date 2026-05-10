@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/ports"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 )
 
 // Adapter sends notifications via generic HTTP webhooks.

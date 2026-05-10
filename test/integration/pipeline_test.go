@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
-	detectionSvc "github.com/obsygnal/obsygnal-pulse/internal/services/detection"
-	ingestionSvc "github.com/obsygnal/obsygnal-pulse/internal/services/ingestion"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	detectionSvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/detection"
+	ingestionSvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
 
 func skipIfNotIntegration(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/auth"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/auth"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 )
 
 // Service handles user authentication and authorization.

@@ -7,8 +7,8 @@ package dto
 import (
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/detection"
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/recommendation"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/recommendation"
 )
 
 // MetricsIngestRequest is the request body for POST /api/v1/metrics/ingest.

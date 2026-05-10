@@ -9,8 +9,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 )
 
 // Adapter implements ports.CacheStore for Redis.

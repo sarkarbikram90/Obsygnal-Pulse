@@ -15,8 +15,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/config"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 )
 
 func main() {

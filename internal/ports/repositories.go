@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 )
 
 // MetricsRepository defines the contract for metric data persistence.

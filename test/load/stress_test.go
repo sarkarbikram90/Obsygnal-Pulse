@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/obsygnal/obsygnal-pulse/internal/domain/metrics"
-	"github.com/obsygnal/obsygnal-pulse/internal/pkg/logger"
-	"github.com/obsygnal/obsygnal-pulse/internal/simulator"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/simulator"
 )
 
 func skipIfNotLoadTest(t *testing.T) {
