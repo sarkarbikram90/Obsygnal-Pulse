@@ -12,12 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
-	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/handlers"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/middleware"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
+	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
 
