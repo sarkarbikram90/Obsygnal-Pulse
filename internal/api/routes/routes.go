@@ -37,7 +37,7 @@ func Register(r *gin.Engine, deps Deps) {
 	r.Use(middleware.Recovery(deps.Log))
 	r.Use(middleware.CORS())
 	r.Use(middleware.SecurityHeaders())
-	
+
 	// Apply rate limiting if redis is provided
 	if deps.RedisClient != nil {
 		r.Use(middleware.RateLimiter(deps.RedisClient, deps.Log, 100, 1*time.Minute))
@@ -49,7 +49,7 @@ func Register(r *gin.Engine, deps Deps) {
 		// Health & status (Public)
 		v1.GET("/health", handlers.HealthCheck(deps.Registry))
 		v1.GET("/ready", handlers.ReadinessCheck(deps.Registry))
-		
+
 		// Ingestion (Public for now, could be protected via API key later)
 		v1.POST("/metrics/ingest", handlers.IngestMetrics(deps.IngestionSvc))
 		v1.GET("/ingestion/stats", handlers.IngestionStats(deps.IngestionSvc))
@@ -59,7 +59,7 @@ func Register(r *gin.Engine, deps Deps) {
 		if deps.JWTSecret != "" {
 			protected.Use(middleware.AuthRequired(deps.Log, deps.JWTSecret))
 		}
-		
+
 		{
 			// Cluster & Metrics
 			protected.GET("/cluster/overview", handlers.ClusterOverview(deps.MetricsRepo))

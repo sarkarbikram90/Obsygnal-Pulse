@@ -27,7 +27,7 @@ func AuthRequired(log *logger.Logger, secret string) gin.HandlerFunc {
 		}
 
 		token := parts[1]
-		
+
 		// For MVP: Simple hardcoded token verification.
 		// Production: Use jwt.Parse(token, ...) to validate claims.
 		if token != secret {

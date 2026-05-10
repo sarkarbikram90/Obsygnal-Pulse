@@ -16,7 +16,7 @@ func RateLimiter(redisClient *redis.Client, log *logger.Logger, limit int, windo
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()
 		key := fmt.Sprintf("rate_limit:%s", clientIP)
-		
+
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 500*time.Millisecond)
 		defer cancel()
 
@@ -25,7 +25,7 @@ func RateLimiter(redisClient *redis.Client, log *logger.Logger, limit int, windo
 
 		// Redis transaction (pipeline)
 		pipe := redisClient.Pipeline()
-		
+
 		// Remove old requests outside the window
 		pipe.ZRemRangeByScore(ctx, key, "-inf", fmt.Sprintf("%d", windowStart))
 		// Add current request
@@ -43,15 +43,15 @@ func RateLimiter(redisClient *redis.Client, log *logger.Logger, limit int, windo
 		}
 
 		count := countCmd.Val()
-		
+
 		// Set rate limit headers
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", limit-int(count)))
-		
+
 		if count > int64(limit) {
 			log.Warn().Str("ip", clientIP).Int64("count", count).Msg("rate limit exceeded")
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error": "too many requests",
+				"error":       "too many requests",
 				"retry_after": window.Seconds(),
 			})
 			return
