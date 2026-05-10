@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/nats"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 )
@@ -35,10 +36,15 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	// TODO: Initialize Prometheus client, Redis publisher, and start scrape loop
+	natsAdapter, err := nats.NewAdapter(cfg.Nats, log)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to NATS JetStream")
+	}
+	defer natsAdapter.Close()
+
+	// TODO: Initialize Prometheus client and start scrape loop
 	// collector := prometheus.NewCollector(cfg.Prometheus)
-	// publisher := redis.NewPublisher(cfg.Redis)
-	// loop := collector.RunScrapeLoop(ctx, cfg.Collector.ScrapeInterval, publisher)
+	// loop := collector.RunScrapeLoop(ctx, cfg.Collector.ScrapeInterval, natsAdapter.PublishBatch)
 
 	ticker := time.NewTicker(cfg.Collector.ScrapeInterval)
 	defer ticker.Stop()

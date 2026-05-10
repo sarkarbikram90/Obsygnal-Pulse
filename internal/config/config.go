@@ -21,6 +21,7 @@ type Config struct {
 	Detection  DetectionConfig
 	Alerting   AlertingConfig
 	Telemetry  TelemetryConfig
+	Nats       NatsConfig
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -128,6 +129,14 @@ type TelemetryConfig struct {
 	TracesEnabled  bool
 }
 
+// NatsConfig holds NATS JetStream configuration.
+type NatsConfig struct {
+	URL        string
+	StreamName string
+	MaxRetries int
+	AckWait    time.Duration
+}
+
 // Load reads configuration from environment variables with defaults.
 // We prefer env vars over config files because:
 // 1. They work seamlessly with Docker, K8s, and CI/CD
@@ -202,6 +211,12 @@ func Load() (*Config, error) {
 			SamplingRate:   getEnvFloat("OTEL_SAMPLING_RATE", 0.1),
 			MetricsEnabled: getEnvBool("OTEL_METRICS_ENABLED", true),
 			TracesEnabled:  getEnvBool("OTEL_TRACES_ENABLED", true),
+		},
+		Nats: NatsConfig{
+			URL:        getEnv("NATS_URL", "nats://localhost:4222"),
+			StreamName: getEnv("NATS_STREAM_NAME", "telemetry"),
+			MaxRetries: getEnvInt("NATS_MAX_RETRIES", 3),
+			AckWait:    getEnvDuration("NATS_ACK_WAIT", 30*time.Second),
 		},
 	}
 

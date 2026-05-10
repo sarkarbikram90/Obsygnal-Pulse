@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: obsygnal-nats
+  labels:
+    app: obsygnal-nats
+spec:
+  serviceName: obsygnal-nats
+  replicas: 3
+  selector:
+    matchLabels:
+      app: obsygnal-nats
+  template:
+    metadata:
+      labels:
+        app: obsygnal-nats
+    spec:
+      containers:
+      - name: nats
+        image: nats:2.10-alpine
+        command: ["nats-server", "-js", "-m", "8222"]
+        ports:
+        - containerPort: 4222
+          name: client
+        - containerPort: 8222
+          name: monitor
+        volumeMounts:
+        - name: nats-data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: obsygnal-nats
+spec:
+  clusterIP: None
+  selector:
+    app: obsygnal-nats
+  ports:
+  - port: 4222
+    name: client
+  - port: 8222
+    name: monitor

@@ -40,7 +40,27 @@ services:
       - obsygnal
 
   # ============================================================
-  # Redis - Cache & Event Queue
+  # NATS JetStream - High-Throughput Telemetry Event Bus
+  # ============================================================
+  nats:
+    image: nats:2.10-alpine
+    container_name: obsygnal-nats
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+    command: ["-js"]  # Enable JetStream
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - obsygnal
+
+  # ============================================================
+  # Redis - Cache & Deduplication Layer
   # ============================================================
   redis:
     image: redis:7.2-alpine
@@ -108,6 +128,7 @@ services:
 volumes:
   clickhouse_data:
   redis_data:
+  nats_data:
   prometheus_data:
   grafana_data:
 

@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/nats"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
@@ -65,15 +66,25 @@ func main() {
 		}
 	}()
 
-	// For MVP, publish directly to stdout (will be replaced with Redis publisher)
+	natsAdapter, err := nats.NewAdapter(cfg.Nats, log)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to NATS JetStream")
+	}
+	defer natsAdapter.Close()
+
+	// Publish to NATS JetStream
 	publisher := func(ctx context.Context, batch *metrics.MetricBatch) error {
+		if err := natsAdapter.PublishBatch(ctx, batch); err != nil {
+			log.Error().Err(err).Msg("failed to publish telemetry to NATS")
+			return err
+		}
+
 		log.Info().
 			Int("gpu_metrics", len(batch.GPUMetrics)).
 			Int("node_metrics", len(batch.NodeMetrics)).
 			Str("source", batch.Source).
-			Msg("telemetry batch generated")
+			Msg("telemetry batch published to NATS")
 
-		// In development, also write to a local endpoint for the collector
 		return nil
 	}
 

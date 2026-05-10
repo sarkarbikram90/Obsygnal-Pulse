@@ -48,6 +48,11 @@ redis:
   enabled: true
 prometheus:
   enabled: true
+nats:
+  enabled: true
+  nats:
+    jetstream:
+      enabled: true
 
 # Application config
 config:
@@ -60,3 +65,7 @@ config:
     slackWebhookURL: ""
     deduplicationWindow: 15m
     rateLimitPerMinute: 10
+  nats:
+    url: "nats://obsygnal-pulse-nats:4222"
+    streamName: "telemetry"
+    maxRetries: 3
