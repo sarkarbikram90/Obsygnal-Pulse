@@ -1,0 +1,47 @@
+# Obsygnal-Pulse .gitignore
+
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test
+coverage.out
+coverage.html
+*.test
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (if local)
+data/
+
+# Node modules (frontend)
+web/node_modules/
+web/dist/
+web/.next/
+
+# Terraform
+deploy/terraform/**/.terraform/
+deploy/terraform/**/*.tfstate
+deploy/terraform/**/*.tfstate.backup
+deploy/terraform/**/.terraform.lock.hcl
+
+# Temporary
+tmp/
+*.tmp
+*.log

@@ -1,0 +1,38 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - bodyclose
+    - exportloopref
+    - gosec
+    - prealloc
+
+linters-settings:
+  errcheck:
+    check-blank: true
+  govet:
+    check-shadowing: false
+  gosec:
+    severity: medium
+    confidence: medium
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+    - path: cmd/simulator/
+      linters:
+        - gosec

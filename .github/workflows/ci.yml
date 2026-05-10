@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: '1.22'
+  GOLANGCI_LINT_VERSION: 'v1.57'
+
+jobs:
+  # ============================================================
+  # Lint
+  # ============================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=5m
+
+  # ============================================================
+  # Test
+  # ============================================================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.3
+        ports:
+          - 9000:9000
+          - 8123:8123
+        env:
+          CLICKHOUSE_DB: obsygnal_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: test
+        options: >-
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run migrations
+        run: |
+          for f in migrations/clickhouse/*.sql; do
+            clickhouse-client --host localhost --password test --multiquery < "$f"
+          done
+        env:
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PASSWORD: test
+
+      - name: Run unit tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
+        env:
+          ENVIRONMENT: test
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: 9000
+          CLICKHOUSE_DATABASE: obsygnal_test
+          CLICKHOUSE_PASSWORD: test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 50" | bc -l) )); then
+            echo "::warning::Coverage ${COVERAGE}% is below 50% target. Working toward 80%."
+          fi
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
+
+  # ============================================================
+  # Build
+  # ============================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build all binaries
+        run: |
+          CGO_ENABLED=0 go build -ldflags="-w -s" -o bin/api-server ./cmd/api-server/
+          CGO_ENABLED=0 go build -ldflags="-w -s" -o bin/simulator ./cmd/simulator/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: bin/
+
+  # ============================================================
+  # Docker Build
+  # ============================================================
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: |
+          docker build -f deploy/docker/api-server.Dockerfile \
+            --build-arg SERVICE=api-server \
+            -t obsygnal-pulse/api-server:${{ github.sha }} .
+
+          docker build -f deploy/docker/api-server.Dockerfile \
+            --build-arg SERVICE=simulator \
+            -t obsygnal-pulse/simulator:${{ github.sha }} .
+
+      - name: Verify images
+        run: |
+          docker images | grep obsygnal-pulse

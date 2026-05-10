@@ -1,0 +1,99 @@
+{
+  "gpu_metrics": [
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-000",
+      "gpu_id": "test-gpu-000-0",
+      "gpu_model": "NVIDIA A100-SXM4-80GB",
+      "gpu_index": 0,
+      "timestamp": "2026-05-09T23:00:00Z",
+      "utilization": 85.5,
+      "memory_utilization": 72.3,
+      "memory_used": 57840000000,
+      "memory_total": 85899000000,
+      "temperature": 71.0,
+      "power_usage": 280.0,
+      "power_limit": 400.0,
+      "fan_speed": 45.0,
+      "running_processes": 2,
+      "job_id": "training-job-001"
+    },
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-000",
+      "gpu_id": "test-gpu-000-1",
+      "gpu_model": "NVIDIA A100-SXM4-80GB",
+      "gpu_index": 1,
+      "timestamp": "2026-05-09T23:00:00Z",
+      "utilization": 0.0,
+      "memory_utilization": 0.5,
+      "memory_used": 429000000,
+      "memory_total": 85899000000,
+      "temperature": 32.0,
+      "power_usage": 50.0,
+      "power_limit": 400.0,
+      "fan_speed": 20.0,
+      "running_processes": 0,
+      "job_id": ""
+    },
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-001",
+      "gpu_id": "test-gpu-001-0",
+      "gpu_model": "NVIDIA A100-SXM4-80GB",
+      "gpu_index": 0,
+      "timestamp": "2026-05-09T23:00:00Z",
+      "utilization": 12.3,
+      "memory_utilization": 8.5,
+      "memory_used": 7300000000,
+      "memory_total": 85899000000,
+      "temperature": 45.0,
+      "power_usage": 120.0,
+      "power_limit": 400.0,
+      "fan_speed": 30.0,
+      "running_processes": 1,
+      "job_id": "inference-job-042"
+    },
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-001",
+      "gpu_id": "test-gpu-001-1",
+      "gpu_model": "NVIDIA A100-SXM4-80GB",
+      "gpu_index": 1,
+      "timestamp": "2026-05-09T23:00:00Z",
+      "utilization": 2.0,
+      "memory_utilization": 65.0,
+      "memory_used": 55834000000,
+      "memory_total": 85899000000,
+      "temperature": 48.0,
+      "power_usage": 100.0,
+      "power_limit": 400.0,
+      "fan_speed": 28.0,
+      "running_processes": 1,
+      "job_id": "training-job-019"
+    }
+  ],
+  "node_metrics": [
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-000",
+      "timestamp": "2026-05-09T23:00:00Z",
+      "cpu_usage": 45.2,
+      "memory_usage": 62.0,
+      "disk_usage": 35.0,
+      "gpu_count": 2,
+      "pod_count": 5
+    },
+    {
+      "cluster_id": "test-cluster-01",
+      "node_id": "test-node-001",
+      "timestamp": "2026-05-09T23:00:00Z",
+      "cpu_usage": 92.5,
+      "memory_usage": 78.0,
+      "disk_usage": 45.0,
+      "gpu_count": 2,
+      "pod_count": 8
+    }
+  ],
+  "source": "test-fixtures"
+}

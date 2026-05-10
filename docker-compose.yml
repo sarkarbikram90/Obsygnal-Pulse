@@ -1,0 +1,117 @@
+# Obsygnal-Pulse Local Development Stack
+# Usage: docker compose up -d
+#
+# This provides the full local development environment:
+# - ClickHouse (analytics database)
+# - Redis (cache + queues)
+# - Prometheus (metrics collection)
+# - Grafana (dashboards)
+#
+# The Go services run natively (not in Docker) for fast iteration.
+# Use `make dev` to start the Go services with hot-reload.
+
+services:
+  # ============================================================
+  # ClickHouse - Historical Analytics
+  # ============================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: obsygnal-clickhouse
+    ports:
+      - "8123:8123"   # HTTP interface
+      - "9000:9000"   # Native protocol
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./migrations/clickhouse:/docker-entrypoint-initdb.d
+    environment:
+      CLICKHOUSE_DB: obsygnal
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: obsygnal_dev
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - obsygnal
+
+  # ============================================================
+  # Redis - Cache & Event Queue
+  # ============================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: obsygnal-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - obsygnal
+
+  # ============================================================
+  # Prometheus - Metrics Collection
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: obsygnal-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - obsygnal
+
+  # ============================================================
+  # Grafana - Dashboards
+  # ============================================================
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: obsygnal-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deploy/docker/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: obsygnal
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "http://localhost:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - obsygnal
+
+volumes:
+  clickhouse_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  obsygnal:
+    driver: bridge
