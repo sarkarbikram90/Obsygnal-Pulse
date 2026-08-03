@@ -28,7 +28,6 @@ func TestMemoryStore_MetricsRepository(t *testing.T) {
 		Utilization: 75.0,
 	}
 	nodeMetric := metrics.NodeMetric{
-		ID:        "node-test-1",
 		Timestamp: now,
 		ClusterID: "c1",
 		NodeID:    "n1",
