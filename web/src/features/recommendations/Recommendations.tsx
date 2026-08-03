@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
-import { Lightbulb, DollarSign, CheckCircle2, Zap, Copy, Download } from 'lucide-react'
+import { Lightbulb, DollarSign, CheckCircle2, Zap, Copy } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Recommendation } from '../../types'
 

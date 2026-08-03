@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { Card } from '../../components/ui/card'
-import { DollarSign, Cpu, TrendingUp, ShieldCheck, Zap, Download } from 'lucide-react'
+import { Cpu, Zap, Download } from 'lucide-react'
 
 export const FleetSimulator: React.FC = () => {
   const [gpuCount, setGpuCount] = useState<number>(64)
   const [gpuModel, setGpuModel] = useState<string>('H100')
   const [idlePercent, setIdlePercent] = useState<number>(25)
-  const [hoursPerDay, setHoursPerDay] = useState<number>(24)
+  const [hoursPerDay] = useState<number>(24)
 
   const hourlyRates: Record<string, number> = {
     B200: 9.50,
