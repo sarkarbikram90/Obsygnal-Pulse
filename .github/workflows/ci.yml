@@ -6,16 +6,25 @@ on:
   pull_request:
     branches: [main]
 
+# Auto-cancel outdated workflow runs on push to PR branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Strict Least-Privilege Security Posture
+permissions:
+  contents: read
+
 env:
   GO_VERSION: '1.25'
   GOPROXY: 'https://proxy.golang.org,direct'
 
 jobs:
   # ============================================================
-  # Lint
+  # Lint & Code Hygiene
   # ============================================================
   lint:
-    name: Lint
+    name: Lint & Code Hygiene
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,8 +34,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Download dependencies
-        run: go mod download
+      - name: Verify go.mod & go.sum hygiene
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || (echo "::error::go.mod or go.sum is not tidied. Run 'go mod tidy' locally." && exit 1)
 
       - name: Run go vet
         run: go vet -mod=mod ./...
@@ -40,13 +51,12 @@ jobs:
           fi
 
   # ============================================================
-  # Test
+  # Test & Coverage
   # ============================================================
   test:
-    name: Test
+    name: Test & Coverage
     runs-on: ubuntu-latest
     needs: lint
-
     steps:
       - uses: actions/checkout@v5
 
@@ -58,12 +68,12 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run unit tests
+      - name: Run unit tests with Race Detector
         run: go test -mod=mod -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
         env:
           ENVIRONMENT: test
 
-      - name: Run test/ package tests
+      - name: Run E2E & package tests
         run: go test -mod=mod -v ./test/...
         env:
           ENVIRONMENT: test
@@ -83,10 +93,10 @@ jobs:
           fail_ci_if_error: false
 
   # ============================================================
-  # Build
+  # Build Binaries
   # ============================================================
   build:
-    name: Build
+    name: Build Binaries
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -96,7 +106,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Build all binaries
+      - name: Build static binaries
         run: |
           CGO_ENABLED=0 go build -mod=mod -ldflags="-w -s" -o bin/api-server ./cmd/api-server/
           CGO_ENABLED=0 go build -mod=mod -ldflags="-w -s" -o bin/simulator ./cmd/simulator/
@@ -110,35 +120,54 @@ jobs:
           path: bin/
 
   # ============================================================
-  # Docker Build
+  # Docker Build & Vulnerability Scan
   # ============================================================
   docker:
-    name: Docker Build
+    name: Docker Build & Security Scan
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build Docker images
-        run: |
-          docker build -f deploy/docker/api-server.Dockerfile \
-            --build-arg SERVICE=api-server \
-            -t obsygnal-pulse/api-server:${{ github.sha }} .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          docker build -f deploy/docker/api-server.Dockerfile \
-            --build-arg SERVICE=simulator \
-            -t obsygnal-pulse/simulator:${{ github.sha }} .
+      - name: Build API Server Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/api-server.Dockerfile
+          build-args: SERVICE=api-server
+          tags: obsygnal-pulse/api-server:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Verify images
-        run: |
-          docker images | grep obsygnal-pulse
+      - name: Build Simulator Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/api-server.Dockerfile
+          build-args: SERVICE=simulator
+          tags: obsygnal-pulse/simulator:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan API Server Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'obsygnal-pulse/api-server:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
 
   # ============================================================
-  # Frontend
+  # Frontend Build & Typecheck
   # ============================================================
   frontend:
-    name: Frontend
+    name: Frontend Build & Typecheck
     runs-on: ubuntu-latest
     needs: lint
     defaults:
@@ -159,5 +188,5 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Build
+      - name: Production bundle build
         run: npm run build
