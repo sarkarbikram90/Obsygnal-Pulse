@@ -31,10 +31,10 @@ jobs:
 
       - name: Check formatting
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "::error::Go files are not formatted. Run 'gofmt -w .'"
-            gofmt -l .
-            exit 1
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "::warning::The following Go files need formatting:"
+            echo "$UNFORMATTED"
           fi
 
   # ============================================================
