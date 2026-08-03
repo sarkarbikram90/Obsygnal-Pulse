@@ -81,20 +81,22 @@ func (s *Service) ProcessBatch(ctx context.Context, batch *metrics.MetricBatch) 
 			continue
 		}
 
-		// Check for duplicates using cache
-		dedupKey := fmt.Sprintf("dedup:%s:%d", m.GPUID, m.Timestamp.UnixMilli())
-		exists, err := s.cache.Exists(ctx, dedupKey)
-		if err != nil {
-			// Cache failures should not block ingestion
-			s.log.Warn().Err(err).Msg("dedup check failed, proceeding")
-		} else if exists {
-			s.totalDuplicates++
-			continue
-		}
+		// Check for duplicates using cache (if cache is provided)
+		if s.cache != nil {
+			dedupKey := fmt.Sprintf("dedup:%s:%d", m.GPUID, m.Timestamp.UnixMilli())
+			exists, err := s.cache.Exists(ctx, dedupKey)
+			if err != nil {
+				// Cache failures should not block ingestion
+				s.log.Warn().Err(err).Msg("dedup check failed, proceeding")
+			} else if exists {
+				s.totalDuplicates++
+				continue
+			}
 
-		// Mark as seen (TTL = 5 minutes for dedup window)
-		if err := s.cache.Set(ctx, dedupKey, true, 5*time.Minute); err != nil {
-			s.log.Warn().Err(err).Msg("failed to set dedup key")
+			// Mark as seen (TTL = 5 minutes for dedup window)
+			if err := s.cache.Set(ctx, dedupKey, true, 5*time.Minute); err != nil {
+				s.log.Warn().Err(err).Msg("failed to set dedup key")
+			}
 		}
 
 		validGPU = append(validGPU, m)
