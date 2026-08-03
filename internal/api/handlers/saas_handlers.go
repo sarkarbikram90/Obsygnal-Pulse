@@ -15,10 +15,10 @@ import (
 
 // RegisterRequest holds payloads for user registration.
 type RegisterRequest struct {
-	Email        string `json:"email" binding:"required,email"`
-	Password     string `json:"password" binding:"required,min=6"`
-	DisplayName  string `json:"display_name" binding:"required"`
-	OrgName      string `json:"org_name" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	Password    string `json:"password" binding:"required,min=6"`
+	DisplayName string `json:"display_name" binding:"required"`
+	OrgName     string `json:"org_name" binding:"required"`
 }
 
 // LoginRequest holds payloads for user login.

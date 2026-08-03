@@ -40,15 +40,15 @@ type GPUMetric struct {
 	PCIeRxBytes uint64 `json:"pcie_rx_bytes"` // bytes/sec
 
 	// NVIDIA Hardware Primitives & Interconnects
-	MIGInstanceID     string  `json:"mig_instance_id,omitempty"`     // MIG Slice ID (e.g. 1g.10gb)
-	NVLinkBandwidthGB float64 `json:"nvlink_bandwidth_gbps"`          // Inter-GPU P2P throughput
-	XIDErrorCode      int     `json:"xid_error_code,omitempty"`       // Critical Hardware Fault Code (e.g., 31, 43, 62, 79)
-	TensorCoreUtil    float64 `json:"tensor_core_utilization"`        // Matrix multiplier activity
+	MIGInstanceID     string  `json:"mig_instance_id,omitempty"` // MIG Slice ID (e.g. 1g.10gb)
+	NVLinkBandwidthGB float64 `json:"nvlink_bandwidth_gbps"`     // Inter-GPU P2P throughput
+	XIDErrorCode      int     `json:"xid_error_code,omitempty"`  // Critical Hardware Fault Code (e.g., 31, 43, 62, 79)
+	TensorCoreUtil    float64 `json:"tensor_core_utilization"`   // Matrix multiplier activity
 
 	// Deep AI Training & LLM Inference Profiler
-	CUDAMemReserved   uint64  `json:"cuda_memory_reserved_bytes"`   // PyTorch memory_reserved()
+	CUDAMemReserved     uint64  `json:"cuda_memory_reserved_bytes"`   // PyTorch memory_reserved()
 	KVCacheUtilization float64 `json:"kv_cache_utilization,omitempty"` // vLLM PagedAttention KV Cache %
-	TokensPerSecond   float64 `json:"tokens_per_second,omitempty"`    // LLM inference throughput
+	TokensPerSecond     float64 `json:"tokens_per_second,omitempty"`    // LLM inference throughput
 
 	// Process info
 	RunningProcesses int    `json:"running_processes"`

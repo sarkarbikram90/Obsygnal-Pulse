@@ -15,7 +15,7 @@ import (
 func ListInefficiencies(repo ports.InefficiencyRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clusterID := c.DefaultQuery("cluster_id", "sim-cluster-01")
-		
+
 		if repo != nil {
 			ineffs, err := repo.ListActive(c.Request.Context(), clusterID, 100, 0)
 			if err == nil && len(ineffs) > 0 {

@@ -85,8 +85,8 @@ func TestEndToEnd_Pipeline(t *testing.T) {
 	// 2. Inefficiency Detection Evaluation
 	detConfig := config.DetectionConfig{
 		EvaluationInterval:         1 * time.Second,
-		GPUUtilizationThreshold:     30.0,
-		MemoryUtilizationThreshold:  30.0,
+		GPUUtilizationThreshold:    30.0,
+		MemoryUtilizationThreshold: 30.0,
 	}
 	detector := detectionSvc.NewService(memStore, memStore.InefficiencyRepo(), nil, log, detConfig)
 	recommender := recSvc.NewService(memStore.RecommendationRepo(), nil, log)

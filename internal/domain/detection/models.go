@@ -7,20 +7,20 @@ import "time"
 type InefficiencyType string
 
 const (
-	TypeUnderutilizedGPU     InefficiencyType = "underutilized_gpu"
-	TypeOversizedAllocation  InefficiencyType = "oversized_allocation"
-	TypeLowMemoryUsage       InefficiencyType = "low_memory_usage"
-	TypeCPUStarvation        InefficiencyType = "cpu_starvation"
-	TypeStalledTraining      InefficiencyType = "stalled_training"
-	TypeRepeatedFailures     InefficiencyType = "repeated_failures"
-	TypeHighRetry            InefficiencyType = "high_retry_pattern"
-	TypeAbnormalSpike        InefficiencyType = "abnormal_resource_spike"
-	TypeIdleGPU              InefficiencyType = "idle_gpu"
-	TypeDataLoaderBottleneck InefficiencyType = "data_loader_bottleneck"
-	TypeXIDHardwareError     InefficiencyType = "xid_hardware_error"
+	TypeUnderutilizedGPU        InefficiencyType = "underutilized_gpu"
+	TypeOversizedAllocation     InefficiencyType = "oversized_allocation"
+	TypeLowMemoryUsage          InefficiencyType = "low_memory_usage"
+	TypeCPUStarvation           InefficiencyType = "cpu_starvation"
+	TypeStalledTraining         InefficiencyType = "stalled_training"
+	TypeRepeatedFailures        InefficiencyType = "repeated_failures"
+	TypeHighRetry               InefficiencyType = "high_retry_pattern"
+	TypeAbnormalSpike           InefficiencyType = "abnormal_resource_spike"
+	TypeIdleGPU                 InefficiencyType = "idle_gpu"
+	TypeDataLoaderBottleneck    InefficiencyType = "data_loader_bottleneck"
+	TypeXIDHardwareError        InefficiencyType = "xid_hardware_error"
 	TypeCUDAMemoryFragmentation InefficiencyType = "cuda_memory_fragmentation"
-	TypeNCCLStraggler        InefficiencyType = "nccl_straggler"
-	TypeKVCacheSaturation    InefficiencyType = "kv_cache_saturation"
+	TypeNCCLStraggler           InefficiencyType = "nccl_straggler"
+	TypeKVCacheSaturation       InefficiencyType = "kv_cache_saturation"
 )
 
 // Severity represents the severity of a detected inefficiency.
