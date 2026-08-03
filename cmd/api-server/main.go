@@ -88,10 +88,17 @@ func main() {
 
 	authService := authsvc.NewService("obsygnal-pulse-secret-mvp", time.Hour, log)
 
+	ineffAdapter := clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
+	recAdapter := clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
+	alertAdapter := clickhouse.NewAlertAdapter(chAdapter.Conn(), log)
+
 	routes.Register(router, routes.Deps{
 		Log:          log,
 		Registry:     healthRegistry,
 		MetricsRepo:  chAdapter,
+		IneffRepo:    ineffAdapter,
+		RecRepo:      recAdapter,
+		AlertRepo:    alertAdapter,
 		IngestionSvc: ingestionSvc,
 		RedisClient:  redisAdapter.Client(),
 		AuthService:  authService,

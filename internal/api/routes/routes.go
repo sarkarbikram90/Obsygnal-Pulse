@@ -1,9 +1,4 @@
 // Package routes centralizes the HTTP routing topology for the api-server.
-//
-// It strictly maps URL paths (e.g., /api/v1/health) to their respective handlers
-// and wires up critical middleware (Rate Limiting, JWT Authentication, CORS).
-// This separation ensures the HTTP server configuration is cleanly decoupled
-// from the concrete endpoint logic.
 package routes
 
 import (
@@ -26,6 +21,9 @@ type Deps struct {
 	Log          *logger.Logger
 	Registry     *health.Registry
 	MetricsRepo  ports.MetricsRepository
+	IneffRepo    ports.InefficiencyRepository
+	RecRepo      ports.RecommendationRepository
+	AlertRepo    ports.AlertRepository
 	IngestionSvc *ingestion.Service
 	RedisClient  *redis.Client
 	AuthService  *authsvc.Service
@@ -42,7 +40,7 @@ func Register(r *gin.Engine, deps Deps) {
 
 	// Apply rate limiting if redis is provided
 	if deps.RedisClient != nil {
-		r.Use(middleware.RateLimiter(deps.RedisClient, deps.Log, 100, 1*time.Minute))
+		r.Use(middleware.RateLimiter(deps.RedisClient, deps.Log, 200, 1*time.Minute))
 	}
 
 	// API v1 group
@@ -52,31 +50,54 @@ func Register(r *gin.Engine, deps Deps) {
 		v1.GET("/health", handlers.HealthCheck(deps.Registry))
 		v1.GET("/ready", handlers.ReadinessCheck(deps.Registry))
 
-		// Ingestion (Public for now, could be protected via API key later)
+		// Authentication (Public)
+		v1.POST("/auth/register", handlers.RegisterUser(deps.AuthService))
+		v1.POST("/auth/login", handlers.LoginUser(deps.AuthService))
+
+		// Ingestion (Public for agent metric ingestion)
 		v1.POST("/metrics/ingest", handlers.IngestMetrics(deps.IngestionSvc))
 		v1.GET("/ingestion/stats", handlers.IngestionStats(deps.IngestionSvc))
 
-		// Protected endpoints
+		// Protected endpoints (Supports JWT or fallback for dev)
 		protected := v1.Group("")
 		if deps.AuthService != nil {
 			protected.Use(middleware.AuthRequired(deps.Log, deps.AuthService))
 		}
 
 		{
+			// Auth & Organization
+			protected.GET("/auth/me", handlers.GetCurrentUser())
+
 			// Cluster & Metrics
 			protected.GET("/cluster/overview", handlers.ClusterOverview(deps.MetricsRepo))
 			protected.GET("/gpus/metrics", handlers.GPUMetrics(deps.MetricsRepo))
 
-			// Inefficiencies
-			protected.GET("/inefficiencies", handlers.ListInefficiencies())
+			// Inefficiencies & Bottlenecks
+			protected.GET("/inefficiencies", handlers.ListInefficiencies(deps.IneffRepo))
 
-			// Recommendations
-			protected.GET("/recommendations", handlers.ListRecommendations())
-			protected.POST("/recommendations/:id/apply", handlers.ApplyRecommendation())
-			protected.POST("/recommendations/:id/dismiss", handlers.DismissRecommendation())
+			// Recommendations & Auto-Remediation
+			protected.GET("/recommendations", handlers.ListRecommendations(deps.RecRepo))
+			protected.POST("/recommendations/:id/apply", handlers.ApplyRecommendation(deps.RecRepo))
+			protected.POST("/recommendations/:id/dismiss", handlers.DismissRecommendation(deps.RecRepo))
 
 			// Alerts
-			protected.GET("/alerts/recent", handlers.RecentAlerts())
+			protected.GET("/alerts/recent", handlers.RecentAlerts(deps.AlertRepo))
+
+			// Training Jobs & Nodes
+			protected.GET("/jobs", handlers.ListJobs())
+			protected.GET("/nodes", handlers.ListNodes())
+
+			// API Keys
+			protected.POST("/api-keys", handlers.CreateAPIKey())
+			protected.GET("/api-keys", handlers.ListAPIKeys())
+			protected.DELETE("/api-keys/:id", handlers.RevokeAPIKey())
+
+			// SaaS Billing & Metering
+			protected.GET("/billing/usage", handlers.GetUsageSummary())
+			protected.POST("/billing/upgrade", handlers.UpgradeTier())
+
+			// Compliance Audit Logs
+			protected.GET("/audit-logs", handlers.ListAuditLogs())
 		}
 	}
 }

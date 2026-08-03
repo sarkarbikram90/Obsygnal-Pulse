@@ -63,6 +63,30 @@ func (s *Service) GenerateUserToken(user *auth.User, orgMember *auth.OrgMember) 
 	return token.SignedString(s.jwtSecret)
 }
 
+// GenerateToken generates a JWT string from userID, orgID, and role string.
+func (s *Service) GenerateToken(userID, orgID, role string) (string, error) {
+	if len(s.jwtSecret) == 0 {
+		return "", fmt.Errorf("JWT secret not configured")
+	}
+
+	claims := TokenClaims{
+		UserID: userID,
+		OrgID:  orgID,
+		Role:   auth.Role(role),
+		Type:   "user",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "obsygnal-pulse",
+			Subject:   userID,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.jwtSecret)
+}
+
 // ValidateToken verifies a JWT token and returns the claims securely.
 func (s *Service) ValidateToken(tokenString string) (*TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {

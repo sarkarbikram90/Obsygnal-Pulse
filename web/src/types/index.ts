@@ -56,7 +56,7 @@ export interface Inefficiency {
   detected_at: string
   resolved_at?: string
   is_active: boolean
-  labels: Record<string, string>
+  labels?: Record<string, string>
 }
 
 export interface EstimatedSavings {
@@ -84,4 +84,40 @@ export interface Recommendation {
   inefficiency_id: string
   created_at: string
   expires_at: string
+}
+
+export interface User {
+  id: string
+  email: string
+  display_name: string
+}
+
+export interface Organization {
+  id: string
+  name: string
+  tier: "free" | "pro" | "enterprise"
+  role: "owner" | "admin" | "operator" | "viewer"
+}
+
+export interface UsageSummary {
+  organization_id: string
+  tier: "free" | "pro" | "enterprise"
+  billing_cycle: string
+  monitored_gpus: number
+  gpu_hours_used: number
+  gpu_hours_limit: number
+  estimated_cost_usd: number
+  estimated_savings_usd: number
+  active_clusters: number
+}
+
+export interface APIKey {
+  id: string
+  name: string
+  prefix: string
+  secret_key?: string
+  created_at: string
+  last_used?: string
+  description?: string
+  status?: string
 }
