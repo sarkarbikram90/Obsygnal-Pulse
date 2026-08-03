@@ -49,6 +49,7 @@ func Register(r *gin.Engine, deps Deps) {
 		// Health & status (Public)
 		v1.GET("/health", handlers.HealthCheck(deps.Registry))
 		v1.GET("/ready", handlers.ReadinessCheck(deps.Registry))
+		r.GET("/metrics", handlers.PrometheusMetrics())
 
 		// Authentication (Public)
 		v1.POST("/auth/register", handlers.RegisterUser(deps.AuthService))

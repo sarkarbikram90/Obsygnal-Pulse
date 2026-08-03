@@ -9,6 +9,7 @@ import Alerts from './features/alerts/Alerts'
 import Nodes from './features/cluster/Nodes'
 import Jobs from './features/jobs/Jobs'
 import { BillingView } from './features/billing/BillingView'
+import { FleetSimulator } from './features/executive/FleetSimulator'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,7 @@ function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="recommendations" element={<Recommendations />} />
               <Route path="inefficiencies" element={<Inefficiencies />} />
+              <Route path="simulator" element={<FleetSimulator />} />
               <Route path="alerts" element={<Alerts />} />
               <Route path="nodes" element={<Nodes />} />
               <Route path="jobs" element={<Jobs />} />

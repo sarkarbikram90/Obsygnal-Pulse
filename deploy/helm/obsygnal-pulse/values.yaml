@@ -1,71 +1,50 @@
-# Default values for obsygnal-pulse.
-# This is a YAML-formatted file.
+# Default Helm values for Obsygnal-Pulse deployment
 
-replicaCount: 2
-
-image:
-  repository: obsygnal/obsygnal-pulse
-  tag: "latest"
-  pullPolicy: IfNotPresent
-
-serviceAccount:
-  create: true
-  name: ""
-
-service:
-  type: ClusterIP
-  port: 8080
-
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations: {}
-  hosts:
-    - host: pulse.obsygnal.io
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
-
-# Sub-chart toggles
-clickhouse:
-  enabled: true
-redis:
-  enabled: true
-prometheus:
-  enabled: true
-nats:
-  enabled: true
-  nats:
-    jetstream:
-      enabled: true
-
-# Application config
-config:
+global:
   environment: production
-  detection:
-    gpuUtilizationThreshold: 20
-    memoryUtilizationThreshold: 15
-    evaluationInterval: 60s
-  alerting:
-    slackWebhookURL: ""
-    deduplicationWindow: 15m
-    rateLimitPerMinute: 10
-  nats:
-    url: "nats://obsygnal-pulse-nats:4222"
-    streamName: "telemetry"
-    maxRetries: 3
+  orgId: "org_enterprise_01"
+
+# Agent DaemonSet values
+agent:
+  enabled: true
+  image:
+    repository: ghcr.io/sarkarbikram90/obsygnal-agent
+    tag: latest
+    pullPolicy: IfNotPresent
+  apiKey: "obsygnal_sec_production_agent_key"
+  scrapeInterval: 15s
+  prometheusUrl: "http://prometheus-k8s.monitoring.svc:9090"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    accelerator: nvidia-gpu
+
+# Control Plane API Server values
+server:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/sarkarbikram90/obsygnal-api-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    SERVER_ENVIRONMENT: production
+    CLICKHOUSE_HOST: "clickhouse.obsygnal.svc"
+    CLICKHOUSE_PORT: "9000"
+    REDIS_HOST: "redis.obsygnal.svc"
+    REDIS_PORT: "6379"

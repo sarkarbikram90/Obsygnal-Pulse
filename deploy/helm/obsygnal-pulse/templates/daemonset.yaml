@@ -1,0 +1,38 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "obsygnal-pulse.fullname" . }}-agent
+  labels:
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: obsygnal-pulse
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: agent
+    spec:
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          env:
+            - name: OBSYGNAL_API_KEY
+              value: {{ .Values.agent.apiKey | quote }}
+            - name: PROMETHEUS_URL
+              value: {{ .Values.agent.prometheusUrl | quote }}
+            - name: SCRAPE_INTERVAL
+              value: {{ .Values.agent.scrapeInterval | quote }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: dev-nvidia
+              mountPath: /dev/nvidia0
+{{- end }}

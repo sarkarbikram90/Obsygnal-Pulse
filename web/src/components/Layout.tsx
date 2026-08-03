@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Activity, LayoutDashboard, Lightbulb, AlertTriangle, HardDrive, Cpu, Bell, Key, CreditCard, UserCheck } from 'lucide-react'
+import { Activity, LayoutDashboard, Lightbulb, AlertTriangle, HardDrive, Cpu, Bell, Key, CreditCard, UserCheck, TrendingUp } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { AuthModal } from './AuthModal'
@@ -10,6 +10,7 @@ const navItems = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   { name: 'Inefficiencies', href: '/inefficiencies', icon: AlertTriangle },
+  { name: 'Executive ROI Simulator', href: '/simulator', icon: TrendingUp },
   { name: 'Alerts', href: '/alerts', icon: Bell },
   { name: 'Nodes', href: '/nodes', icon: HardDrive },
   { name: 'Jobs', href: '/jobs', icon: Cpu },

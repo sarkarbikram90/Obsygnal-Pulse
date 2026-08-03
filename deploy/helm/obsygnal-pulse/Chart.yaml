@@ -1,32 +1,17 @@
 apiVersion: v2
 name: obsygnal-pulse
-description: AI Infrastructure Efficiency Platform — GPU telemetry, inefficiency detection, and optimization recommendations
+description: Enterprise Helm Chart for Obsygnal-Pulse AI Infrastructure Observability & Optimization Engine
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
-maintainers:
-  - name: Obsygnal Team
-    email: engineering@obsygnal.io
+appVersion: "0.1.0"
 keywords:
   - gpu
+  - nvidia
   - observability
-  - mlops
-  - kubernetes
+  - pytorch
+  - ray
   - ai-infrastructure
-dependencies:
-  - name: clickhouse
-    version: ">=4.0.0"
-    repository: "https://charts.clickhouse.com"
-    condition: clickhouse.enabled
-  - name: redis
-    version: ">=17.0.0"
-    repository: "https://charts.bitnami.com/bitnami"
-    condition: redis.enabled
-  - name: prometheus
-    version: ">=25.0.0"
-    repository: "https://prometheus-community.github.io/helm-charts"
-    condition: prometheus.enabled
-  - name: nats
-    version: ">=1.1.0"
-    repository: "https://nats-io.github.io/k8s/helm/charts/"
-    condition: nats.enabled
+  - finops
+maintainers:
+  - name: Obsygnal Labs Team
+    email: engineering@obsygnal.io
