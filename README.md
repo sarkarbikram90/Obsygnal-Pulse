@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/sarkarbikram90/Obsygnal-Pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/sarkarbikram90/Obsygnal-Pulse/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](go.mod)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](go.mod)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react)](web/package.json)
 
 ---
@@ -70,7 +70,7 @@ graph TD
 
 ## 🛠️ Tech Stack
 
-- **Backend Control Plane**: Go 1.26, Gin Web Framework, Zerolog.
+- **Backend Control Plane**: Go 1.24, Gin Web Framework, Zerolog.
 - **Frontend SPA Portal**: React 19, TypeScript, TailwindCSS v4, Vite, TanStack Query, Lucide Icons, Recharts.
 - **Data Lake (OLAP)**: ClickHouse (Time-series telemetry & aggregated views).
 - **Relational & KV Storage**: PostgreSQL (Multi-tenant auth, RBAC, API keys), Redis (Rate limiting, sliding windows).
@@ -82,7 +82,7 @@ graph TD
 ## ⚡ Quickstart & Local Setup
 
 ### Prerequisites
-- **Go**: `1.26+`
+- **Go**: `1.24+`
 - **Node.js**: `v22+`
 - **Docker & Docker Compose**: (Optional, for ClickHouse & Redis)
 

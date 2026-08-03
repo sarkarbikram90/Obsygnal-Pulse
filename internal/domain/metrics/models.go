@@ -119,6 +119,7 @@ type NodeMetric struct {
 
 // MetricBatch represents a batch of metrics for efficient processing.
 type MetricBatch struct {
+	ID          string       `json:"id,omitempty"`
 	GPUMetrics  []GPUMetric  `json:"gpu_metrics"`
 	NodeMetrics []NodeMetric `json:"node_metrics"`
 	ReceivedAt  time.Time    `json:"received_at"`
