@@ -15,7 +15,7 @@ COPY . .
 
 # Build with optimizations
 ARG SERVICE=api-server
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod \
     -ldflags="-w -s -X main.version=$(git describe --tags --always 2>/dev/null || echo dev)" \
     -o /app/service ./cmd/${SERVICE}/
 
