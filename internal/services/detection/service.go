@@ -160,6 +160,36 @@ func (s *Service) registerDefaultRules() {
 		Severity:    detection.SeverityCritical,
 		Cooldown:    10 * time.Minute,
 	}, s.ruleAbnormalSpike)
+
+	s.RegisterRule(detection.DetectionRule{
+		Name:        "xid_hardware_error",
+		Type:        detection.TypeXIDHardwareError,
+		Description: "NVIDIA XID Hardware Critical Fault detected (XID 31, 43, 62, 79)",
+		Enabled:     true,
+		Threshold:   1.0,
+		Severity:    detection.SeverityCritical,
+		Cooldown:    5 * time.Minute,
+	}, s.ruleXIDError)
+
+	s.RegisterRule(detection.DetectionRule{
+		Name:        "cuda_memory_fragmentation",
+		Type:        detection.TypeCUDAMemoryFragmentation,
+		Description: "PyTorch CUDA memory allocator fragmentation risking sudden OOM crash",
+		Enabled:     true,
+		Threshold:   2.0, // Reserved > 2x Used
+		Severity:    detection.SeverityHigh,
+		Cooldown:    15 * time.Minute,
+	}, s.ruleCUDAMemoryFragmentation)
+
+	s.RegisterRule(detection.DetectionRule{
+		Name:        "kv_cache_saturation",
+		Type:        detection.TypeKVCacheSaturation,
+		Description: "vLLM PagedAttention KV Cache utilization exceeds safe 90% threshold",
+		Enabled:     true,
+		Threshold:   90.0,
+		Severity:    detection.SeverityHigh,
+		Cooldown:    10 * time.Minute,
+	}, s.ruleKVCacheSaturation)
 }
 
 // RegisterRule adds a new detection rule to the engine.
@@ -486,6 +516,87 @@ func (s *Service) ruleAbnormalSpike(gpuMetrics []metrics.GPUMetric, _ []metrics.
 				Description:     fmt.Sprintf("GPU %s temperature peaked at %.1f°C — exceeds safe threshold of 90°C", gpuID, avg.maxTemp),
 				AffectedMetrics: []string{"gpu_temperature"},
 				CurrentValue:    avg.maxTemp,
+				ThresholdValue:  90.0,
+			})
+		}
+	}
+	return results
+}
+
+// ruleXIDError detects critical NVIDIA XID hardware fault codes.
+func (s *Service) ruleXIDError(gpuMetrics []metrics.GPUMetric, _ []metrics.NodeMetric) []detection.Inefficiency {
+	var results []detection.Inefficiency
+	for _, m := range gpuMetrics {
+		if m.XIDErrorCode > 0 {
+			faultDesc := fmt.Sprintf("NVIDIA Hardware Fault XID %d on GPU %s", m.XIDErrorCode, m.GPUID)
+			switch m.XIDErrorCode {
+			case 31:
+				faultDesc = fmt.Sprintf("XID 31 (GPU Memory Page Fault) on GPU %s", m.GPUID)
+			case 43:
+				faultDesc = fmt.Sprintf("XID 43 (User App Crash / Driver Reset) on GPU %s", m.GPUID)
+			case 62:
+				faultDesc = fmt.Sprintf("XID 62 (Thermal Throttling / Power Derating) on GPU %s", m.GPUID)
+			case 79:
+				faultDesc = fmt.Sprintf("XID 79 (GPU Fallen off PCIe Bus / Hardware Error) on GPU %s", m.GPUID)
+			}
+
+			results = append(results, detection.Inefficiency{
+				Type:            detection.TypeXIDHardwareError,
+				Severity:        detection.SeverityCritical,
+				ClusterID:       m.ClusterID,
+				NodeID:          m.NodeID,
+				GPUID:           m.GPUID,
+				JobID:           m.JobID,
+				Description:     faultDesc,
+				AffectedMetrics: []string{"xid_error_code", "gpu_status"},
+				CurrentValue:    float64(m.XIDErrorCode),
+				ThresholdValue:  1.0,
+			})
+		}
+	}
+	return results
+}
+
+// ruleCUDAMemoryFragmentation detects PyTorch VRAM fragmentation where reserved memory exceeds 2x allocated memory.
+func (s *Service) ruleCUDAMemoryFragmentation(gpuMetrics []metrics.GPUMetric, _ []metrics.NodeMetric) []detection.Inefficiency {
+	var results []detection.Inefficiency
+	for _, m := range gpuMetrics {
+		if m.CUDAMemReserved > 0 && m.MemoryUsed > 0 {
+			ratio := float64(m.CUDAMemReserved) / float64(m.MemoryUsed)
+			if ratio > 2.0 {
+				results = append(results, detection.Inefficiency{
+					Type:            detection.TypeCUDAMemoryFragmentation,
+					Severity:        detection.SeverityHigh,
+					ClusterID:       m.ClusterID,
+					NodeID:          m.NodeID,
+					GPUID:           m.GPUID,
+					JobID:           m.JobID,
+					Description:     fmt.Sprintf("PyTorch CUDA memory fragmentation on %s: reserved %d MB vs used %d MB (ratio %.1fx)", m.GPUID, m.CUDAMemReserved/1048576, m.MemoryUsed/1048576, ratio),
+					AffectedMetrics: []string{"cuda_memory_reserved", "memory_used"},
+					CurrentValue:    ratio,
+					ThresholdValue:  2.0,
+				})
+			}
+		}
+	}
+	return results
+}
+
+// ruleKVCacheSaturation detects vLLM PagedAttention KV cache utilization > 90%.
+func (s *Service) ruleKVCacheSaturation(gpuMetrics []metrics.GPUMetric, _ []metrics.NodeMetric) []detection.Inefficiency {
+	var results []detection.Inefficiency
+	for _, m := range gpuMetrics {
+		if m.KVCacheUtilization > 90.0 {
+			results = append(results, detection.Inefficiency{
+				Type:            detection.TypeKVCacheSaturation,
+				Severity:        detection.SeverityHigh,
+				ClusterID:       m.ClusterID,
+				NodeID:          m.NodeID,
+				GPUID:           m.GPUID,
+				JobID:           m.JobID,
+				Description:     fmt.Sprintf("vLLM PagedAttention KV Cache saturated at %.1f%% on GPU %s — risk of context token ejection", m.KVCacheUtilization, m.GPUID),
+				AffectedMetrics: []string{"kv_cache_utilization"},
+				CurrentValue:    m.KVCacheUtilization,
 				ThresholdValue:  90.0,
 			})
 		}

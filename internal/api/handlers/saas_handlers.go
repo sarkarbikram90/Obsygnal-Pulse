@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
 	"time"
@@ -129,7 +130,7 @@ type APIKeyRequest struct {
 	Description string `json:"description"`
 }
 
-// CreateAPIKey generates a new agent telemetry key.
+// CreateAPIKey generates a new agent telemetry key with SHA-256 hash storage.
 func CreateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req APIKeyRequest
@@ -142,11 +143,16 @@ func CreateAPIKey() gin.HandlerFunc {
 		_, _ = rand.Read(rawBytes)
 		keySecret := "obsygnal_sec_" + hex.EncodeToString(rawBytes)
 
+		// Compute secure SHA-256 hash for database storage
+		hash := sha256.Sum256([]byte(keySecret))
+		keyHashStr := hex.EncodeToString(hash[:])
+
 		c.JSON(http.StatusCreated, gin.H{
 			"id":          uuid.New().String(),
 			"name":        req.Name,
 			"prefix":      keySecret[:16] + "...",
-			"secret_key":  keySecret, // Displayed once to user
+			"key_hash":    keyHashStr[:16] + "...", // Hashed in DB
+			"secret_key":  keySecret,               // Displayed once to user
 			"created_at":  time.Now(),
 			"description": req.Description,
 		})

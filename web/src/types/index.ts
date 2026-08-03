@@ -11,6 +11,11 @@ export interface GPUMetric {
   temperature: number
   power_draw: number
   power_limit: number
+  xid_error_code?: number
+  nvlink_bandwidth_gbps?: number
+  tensor_core_utilization?: number
+  cuda_memory_reserved_bytes?: number
+  kv_cache_utilization?: number
 }
 
 export interface NodeMetric {

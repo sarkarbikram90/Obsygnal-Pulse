@@ -63,7 +63,7 @@ func (a *Adapter) Collect(ctx context.Context) (*metrics.MetricBatch, error) {
 	now := time.Now()
 	gpuMap := make(map[string]*metrics.GPUMetric)
 
-	// PromQL Queries for NVIDIA DCGM Metrics
+	// PromQL Queries for NVIDIA DCGM Metrics & Hardware Hardware Primitives
 	queries := map[string]string{
 		"utilization":        "DCGM_FI_DEV_GPU_UTIL",
 		"memory_utilization": "DCGM_FI_DEV_MEM_COPY_UTIL",
@@ -71,12 +71,15 @@ func (a *Adapter) Collect(ctx context.Context) (*metrics.MetricBatch, error) {
 		"power_usage":        "DCGM_FI_DEV_POWER_USAGE",
 		"memory_used":        "DCGM_FI_DEV_FB_USED * 1048576", // MB to Bytes
 		"memory_free":        "DCGM_FI_DEV_FB_FREE * 1048576",
+		"xid_error":          "DCGM_FI_DEV_XID_ERRORS",
+		"nvlink_bandwidth":   "DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL",
+		"tensor_core_util":   "DCGM_FI_DEV_TENSOR_ACTIVE",
+		"cuda_mem_reserved":  "DCGM_FI_DEV_FB_RESERVED * 1048576",
 	}
 
 	for field, query := range queries {
 		results, err := a.QueryInstant(ctx, query)
 		if err != nil {
-			// Continue gracefully if Prometheus target is unreachable, populating demo/sim metric
 			continue
 		}
 
@@ -132,6 +135,14 @@ func (a *Adapter) Collect(ctx context.Context) (*metrics.MetricBatch, error) {
 				gm.MemoryUsed = uint64(res.Value)
 			case "memory_free":
 				gm.MemoryFree = uint64(res.Value)
+			case "xid_error":
+				gm.XIDErrorCode = int(res.Value)
+			case "nvlink_bandwidth":
+				gm.NVLinkBandwidthGB = res.Value
+			case "tensor_core_util":
+				gm.TensorCoreUtil = res.Value
+			case "cuda_mem_reserved":
+				gm.CUDAMemReserved = uint64(res.Value)
 			}
 		}
 	}

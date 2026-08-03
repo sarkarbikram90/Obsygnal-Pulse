@@ -17,6 +17,10 @@ const (
 	TypeAbnormalSpike        InefficiencyType = "abnormal_resource_spike"
 	TypeIdleGPU              InefficiencyType = "idle_gpu"
 	TypeDataLoaderBottleneck InefficiencyType = "data_loader_bottleneck"
+	TypeXIDHardwareError     InefficiencyType = "xid_hardware_error"
+	TypeCUDAMemoryFragmentation InefficiencyType = "cuda_memory_fragmentation"
+	TypeNCCLStraggler        InefficiencyType = "nccl_straggler"
+	TypeKVCacheSaturation    InefficiencyType = "kv_cache_saturation"
 )
 
 // Severity represents the severity of a detected inefficiency.

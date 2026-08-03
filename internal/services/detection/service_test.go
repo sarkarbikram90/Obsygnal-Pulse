@@ -230,6 +230,57 @@ func TestDetectThermalSpike(t *testing.T) {
 	}
 }
 
+func TestDetectXIDError(t *testing.T) {
+	repo := &mockMetricsRepo{
+		gpuMetrics: []metrics.GPUMetric{
+			{GPUID: "gpu-fault", ClusterID: "c1", NodeID: "n1", Utilization: 0.0, XIDErrorCode: 31, Timestamp: time.Now()},
+		},
+	}
+	svc := NewService(repo, &mockIneffRepo{}, newMockCache(), logger.New("development"), defaultDetectionConfig())
+
+	results, err := svc.Evaluate(context.Background())
+	if err != nil {
+		t.Fatalf("Evaluate() error = %v", err)
+	}
+
+	found := false
+	for _, r := range results {
+		if r.Type == detection.TypeXIDHardwareError && r.GPUID == "gpu-fault" {
+			found = true
+			if r.Severity != detection.SeverityCritical {
+				t.Errorf("XID fault severity should be critical, got %s", r.Severity)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected gpu-fault to be flagged for XID hardware error")
+	}
+}
+
+func TestDetectCUDAMemoryFragmentation(t *testing.T) {
+	repo := &mockMetricsRepo{
+		gpuMetrics: []metrics.GPUMetric{
+			{GPUID: "gpu-frag", ClusterID: "c1", NodeID: "n1", MemoryUsed: 10 * 1048576, CUDAMemReserved: 30 * 1048576, Timestamp: time.Now()},
+		},
+	}
+	svc := NewService(repo, &mockIneffRepo{}, newMockCache(), logger.New("development"), defaultDetectionConfig())
+
+	results, err := svc.Evaluate(context.Background())
+	if err != nil {
+		t.Fatalf("Evaluate() error = %v", err)
+	}
+
+	found := false
+	for _, r := range results {
+		if r.Type == detection.TypeCUDAMemoryFragmentation && r.GPUID == "gpu-frag" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected gpu-frag to be flagged for CUDA memory fragmentation")
+	}
+}
+
 func TestDeduplication(t *testing.T) {
 	repo := &mockMetricsRepo{
 		gpuMetrics: []metrics.GPUMetric{
@@ -320,7 +371,7 @@ func TestStats(t *testing.T) {
 	if stats["total_evaluations"].(int64) != 1 {
 		t.Errorf("total_evaluations = %v, want 1", stats["total_evaluations"])
 	}
-	if stats["rules_count"].(int) != 6 {
-		t.Errorf("rules_count = %v, want 6", stats["rules_count"])
+	if stats["rules_count"].(int) != 9 {
+		t.Errorf("rules_count = %v, want 9", stats["rules_count"])
 	}
 }

@@ -1,116 +1,99 @@
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '../../components/ui/card'
-import { Clock, Server, Activity } from 'lucide-react'
+import { Clock, Server, Activity, ShieldAlert, Cpu } from 'lucide-react'
 import { api } from '../../api/client'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function Inefficiencies() {
   const { data: inefficiencies, isLoading, isError } = useQuery({
-    queryKey: ['inefficiencies', 'default-cluster'],
-    queryFn: () => api.getInefficiencies('default-cluster'),
+    queryKey: ['inefficiencies', 'sim-cluster-01'],
+    queryFn: () => api.getInefficiencies('sim-cluster-01'),
     retry: false,
   })
 
-  // Mock data for visual prototyping
-  const mockIneffs = [
-    {
-      id: '1',
-      type: 'idle_gpu',
-      severity: 'critical',
-      description: 'GPU has been completely idle with 0% utilization but memory is allocated.',
-      node_id: 'worker-node-4',
-      gpu_id: 'gpu-1',
-      current_value: 0,
-      threshold_value: 2,
-      detected_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      is_active: true,
-    },
-    {
-      id: '2',
-      type: 'cpu_starvation',
-      severity: 'high',
-      description: 'Node CPU is saturated at 100% while GPUs are waiting for data (20% util).',
-      node_id: 'worker-node-2',
-      current_value: 99.5,
-      threshold_value: 90,
-      detected_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      is_active: true,
-    },
-    {
-      id: '3',
-      type: 'low_memory_usage',
-      severity: 'medium',
-      description: 'GPU compute is utilized but only 10% of VRAM is allocated. Batch size could be increased.',
-      node_id: 'worker-node-1',
-      gpu_id: 'gpu-3',
-      current_value: 8,
-      threshold_value: 15,
-      detected_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-      is_active: true,
-    }
-  ]
-
-  const displayData = inefficiencies?.length ? inefficiencies : mockIneffs
+  const displayData = inefficiencies || []
 
   const getSeverityColor = (severity: string) => {
-    switch(severity) {
-      case 'critical': return 'text-rose-500 bg-rose-500/10 border-rose-500/20'
-      case 'high': return 'text-orange-500 bg-orange-500/10 border-orange-500/20'
-      case 'medium': return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
-      default: return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+    switch (severity) {
+      case 'critical':
+        return 'text-rose-400 bg-rose-500/10 border-rose-500/30 font-bold'
+      case 'high':
+        return 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+      case 'medium':
+        return 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+      default:
+        return 'text-slate-400 bg-slate-800 border-slate-700'
+    }
+  }
+
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case 'xid_hardware_error':
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-rose-500 text-slate-950"><ShieldAlert className="w-3 h-3" /> Hardware Fault</span>
+      case 'cuda_memory_fragmentation':
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/40"><Cpu className="w-3 h-3" /> PyTorch VRAM Frag</span>
+      case 'kv_cache_saturation':
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/40">vLLM KV Cache</span>
+      default:
+        return null
     }
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 text-slate-100">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Detected Inefficiencies</h1>
-        <p className="text-neutral-400">Raw mathematical inefficiencies identified by the rule engine.</p>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent mb-2">
+          GPU Hardware & Compute Bottlenecks
+        </h1>
+        <p className="text-slate-400">Real-time hardware fault indicators, PyTorch memory fragmentation, and distributed communication skew.</p>
       </div>
 
       <div className="grid gap-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-neutral-900/50 border-neutral-800 animate-pulse h-24" />
+            <Card key={i} className="bg-slate-900/50 border-slate-800 animate-pulse h-24 rounded-2xl" />
           ))
         ) : isError && !inefficiencies ? (
-          <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400">
-            Failed to load inefficiencies. Ensure the backend API is running.
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
+            Failed to load inefficiencies. Ensure the backend server is reachable.
           </div>
         ) : (
           displayData.map((ineff) => (
-            <div key={ineff.id} className="flex items-center p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 hover:bg-neutral-900 transition-colors">
-              <div className="mr-6">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getSeverityColor(ineff.severity)} uppercase tracking-wider`}>
+            <div key={ineff.id} className="flex items-center p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-orange-500/30 transition-all shadow-md">
+              <div className="mr-4">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getSeverityColor(ineff.severity)} uppercase tracking-wider`}>
                   {ineff.severity}
                 </span>
               </div>
-              
-              <div className="flex-1 min-w-0 pr-6 border-r border-neutral-800">
-                <h3 className="text-base font-semibold text-white mb-1 truncate">{ineff.type.replace(/_/g, ' ').toUpperCase()}</h3>
-                <p className="text-sm text-neutral-400 truncate">{ineff.description}</p>
+
+              <div className="flex-1 min-w-0 pr-6 border-r border-slate-800/80">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-tight">{ineff.type.replace(/_/g, ' ')}</h3>
+                  {getTypeBadge(ineff.type)}
+                </div>
+                <p className="text-xs text-slate-400 truncate">{ineff.description}</p>
               </div>
 
-              <div className="w-48 px-6 border-r border-neutral-800 hidden md:block">
-                <div className="flex items-center text-sm text-neutral-300 mb-1">
-                  <Server className="w-4 h-4 mr-2 text-neutral-500" />
+              <div className="w-48 px-6 border-r border-slate-800/80 hidden md:block">
+                <div className="flex items-center text-xs font-semibold text-slate-300 mb-1">
+                  <Server className="w-3.5 h-3.5 mr-2 text-slate-500" />
                   <span className="truncate">{ineff.node_id}</span>
                 </div>
                 {ineff.gpu_id && (
-                  <div className="flex items-center text-sm text-neutral-300">
-                    <Activity className="w-4 h-4 mr-2 text-indigo-400" />
-                    <span>{ineff.gpu_id}</span>
+                  <div className="flex items-center text-xs text-slate-400">
+                    <Activity className="w-3.5 h-3.5 mr-2 text-orange-400" />
+                    <span className="truncate">{ineff.gpu_id}</span>
                   </div>
                 )}
               </div>
 
-              <div className="pl-6 w-32 text-right hidden sm:block">
-                <div className="flex items-center justify-end text-sm text-neutral-500 mb-1">
-                  <Clock className="w-4 h-4 mr-1.5" />
+              <div className="pl-6 w-36 text-right hidden sm:block">
+                <div className="flex items-center justify-end text-xs text-slate-400 mb-1">
+                  <Clock className="w-3.5 h-3.5 mr-1" />
                   {formatDistanceToNow(new Date(ineff.detected_at))} ago
                 </div>
-                <div className="text-xs text-neutral-600">
-                  Val: <span className="text-neutral-300">{ineff.current_value.toFixed(1)}</span> / Thr: {ineff.threshold_value}
+                <div className="text-[11px] text-slate-500 font-mono">
+                  Val: <span className="text-slate-200 font-bold">{ineff.current_value.toFixed(1)}</span> / Thr: {ineff.threshold_value}
                 </div>
               </div>
             </div>

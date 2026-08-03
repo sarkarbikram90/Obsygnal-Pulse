@@ -42,14 +42,19 @@ type GPUPricing struct {
 	TDPWatts       float64
 }
 
-// DefaultPricing returns pricing for common GPU types.
+// DefaultPricing returns multi-cloud pricing for common GPU models.
 func DefaultPricing() map[string]GPUPricing {
 	return map[string]GPUPricing{
-		"NVIDIA A100-SXM4-80GB": {Model: "A100-80GB", CostPerHourUSD: 3.67, MemoryGB: 80, TDPWatts: 400},
-		"NVIDIA A100-SXM4-40GB": {Model: "A100-40GB", CostPerHourUSD: 2.21, MemoryGB: 40, TDPWatts: 400},
-		"NVIDIA H100-SXM5-80GB": {Model: "H100-80GB", CostPerHourUSD: 5.12, MemoryGB: 80, TDPWatts: 700},
-		"NVIDIA V100-SXM2-32GB": {Model: "V100-32GB", CostPerHourUSD: 1.46, MemoryGB: 32, TDPWatts: 300},
-		"default":               {Model: "Generic", CostPerHourUSD: 2.50, MemoryGB: 40, TDPWatts: 350},
+		"NVIDIA H200-SXM5-141GB": {Model: "H200-141GB", CostPerHourUSD: 6.85, MemoryGB: 141, TDPWatts: 700},
+		"NVIDIA B200-SXM-192GB":  {Model: "B200-192GB", CostPerHourUSD: 9.50, MemoryGB: 192, TDPWatts: 1000},
+		"NVIDIA H100-SXM5-80GB":  {Model: "H100-80GB", CostPerHourUSD: 5.12, MemoryGB: 80, TDPWatts: 700},
+		"NVIDIA A100-SXM4-80GB":  {Model: "A100-80GB", CostPerHourUSD: 3.67, MemoryGB: 80, TDPWatts: 400},
+		"NVIDIA A100-SXM4-40GB":  {Model: "A100-40GB", CostPerHourUSD: 2.21, MemoryGB: 40, TDPWatts: 400},
+		"NVIDIA L40S-48GB":       {Model: "L40S-48GB", CostPerHourUSD: 1.85, MemoryGB: 48, TDPWatts: 350},
+		"NVIDIA L4-24GB":         {Model: "L4-24GB", CostPerHourUSD: 0.70, MemoryGB: 24, TDPWatts: 72},
+		"NVIDIA RTX-4090-24GB":   {Model: "RTX4090-24GB", CostPerHourUSD: 0.50, MemoryGB: 24, TDPWatts: 450},
+		"NVIDIA V100-SXM2-32GB":  {Model: "V100-32GB", CostPerHourUSD: 1.46, MemoryGB: 32, TDPWatts: 300},
+		"default":                {Model: "Generic-A100", CostPerHourUSD: 3.50, MemoryGB: 80, TDPWatts: 400},
 	}
 }
 
@@ -169,6 +174,18 @@ func (s *Service) getGenerators(itype detection.InefficiencyType) []func(detecti
 	case detection.TypeAbnormalSpike:
 		return []func(detection.Inefficiency) *recommendation.Recommendation{
 			s.genInvestigateThermal,
+		}
+	case detection.TypeXIDHardwareError:
+		return []func(detection.Inefficiency) *recommendation.Recommendation{
+			s.genIsolateXIDHardwareFault,
+		}
+	case detection.TypeCUDAMemoryFragmentation:
+		return []func(detection.Inefficiency) *recommendation.Recommendation{
+			s.genCUDADefragmentation,
+		}
+	case detection.TypeKVCacheSaturation:
+		return []func(detection.Inefficiency) *recommendation.Recommendation{
+			s.genKVCacheOptimization,
 		}
 	default:
 		return nil
@@ -323,6 +340,61 @@ func (s *Service) genInvestigateThermal(ineff detection.Inefficiency) *recommend
 		ClusterID:       ineff.ClusterID,
 		NodeID:          ineff.NodeID,
 		GPUID:           ineff.GPUID,
+	}
+}
+
+func (s *Service) genIsolateXIDHardwareFault(ineff detection.Inefficiency) *recommendation.Recommendation {
+	pricing := s.getGPUPricing(ineff.Labels)
+	return &recommendation.Recommendation{
+		Category:        recommendation.CategoryReduceIdleTime,
+		Title:           fmt.Sprintf("Isolate Hardware Fault on %s", ineff.GPUID),
+		Description:     ineff.Description,
+		Explanation:     "Critical NVIDIA XID hardware error detected. Cordon & drain the node immediately via kubectl cordon to prevent recurring training job crashes and hardware degradation.",
+		ConfidenceScore: 0.99,
+		EstimatedSavings: recommendation.EstimatedSavings{
+			CostPerHourUSD:  pricing.CostPerHourUSD,
+			CostPerMonthUSD: pricing.CostPerHourUSD * 730,
+		},
+		AffectedMetrics: []string{"xid_error_code", "gpu_status"},
+		ClusterID:       ineff.ClusterID,
+		NodeID:          ineff.NodeID,
+		GPUID:           ineff.GPUID,
+	}
+}
+
+func (s *Service) genCUDADefragmentation(ineff detection.Inefficiency) *recommendation.Recommendation {
+	return &recommendation.Recommendation{
+		Category:        recommendation.CategoryRightSizeMemory,
+		Title:           fmt.Sprintf("Defragment PyTorch CUDA VRAM Allocator on %s", ineff.GPUID),
+		Description:     fmt.Sprintf("CUDA reserved memory is %.1fx higher than allocated memory on %s. Risk of Out-Of-Memory (OOM) crashes.", ineff.CurrentValue, ineff.GPUID),
+		Explanation:     "Set environment variable PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True in training pod environment or invoke torch.cuda.empty_cache() after validation steps.",
+		ConfidenceScore: 0.91,
+		EstimatedSavings: recommendation.EstimatedSavings{
+			GPUHoursPerMonth: 120,
+		},
+		AffectedMetrics: []string{"cuda_memory_reserved", "memory_used"},
+		ClusterID:       ineff.ClusterID,
+		NodeID:          ineff.NodeID,
+		GPUID:           ineff.GPUID,
+		JobID:           ineff.JobID,
+	}
+}
+
+func (s *Service) genKVCacheOptimization(ineff detection.Inefficiency) *recommendation.Recommendation {
+	return &recommendation.Recommendation{
+		Category:        recommendation.CategoryIncreaseBatchSize,
+		Title:           fmt.Sprintf("Optimize vLLM KV Cache Allocation on %s", ineff.GPUID),
+		Description:     fmt.Sprintf("PagedAttention KV Cache is saturated at %.1f%%. Context token eviction may degrade inference quality.", ineff.CurrentValue),
+		Explanation:     "Enable vLLM chunked prefill (--enable-chunked-prefill) or scale out inference replicas to distribute long-context KV cache overhead across additional GPUs.",
+		ConfidenceScore: 0.89,
+		EstimatedSavings: recommendation.EstimatedSavings{
+			GPUHoursPerMonth: 80,
+		},
+		AffectedMetrics: []string{"kv_cache_utilization"},
+		ClusterID:       ineff.ClusterID,
+		NodeID:          ineff.NodeID,
+		GPUID:           ineff.GPUID,
+		JobID:           ineff.JobID,
 	}
 }
 
