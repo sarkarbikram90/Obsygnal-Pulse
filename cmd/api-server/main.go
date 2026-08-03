@@ -1,8 +1,4 @@
 // Package main defines the primary entrypoint for the api-server.
-// The api-server provides the public-facing REST API for Obsygnal-Pulse.
-// It is responsible for ingesting high-throughput GPU telemetry from nodes,
-// serving aggregated cluster health dashboards, and exposing optimization recommendations.
-// It acts as the Primary Adapter, safely wiring HTTP routes to internal domain services.
 package main
 
 import (
@@ -15,13 +11,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/clickhouse"
+	memoryadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/memory"
 	redisadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/redis"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/api/routes"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 )
@@ -43,38 +42,57 @@ func main() {
 		Str("environment", cfg.Server.Environment).
 		Msg("starting Obsygnal-Pulse API server")
 
-	// Initialize infrastructure adapters
-	chAdapter, err := clickhouse.NewAdapter(cfg.ClickHouse, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to ClickHouse")
-	}
-	defer chAdapter.Close()
-
-	redisAdapter, err := redisadapter.NewAdapter(cfg.Redis, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to Redis")
-	}
-	defer redisAdapter.Close()
-
 	// Initialize health checks
 	healthRegistry := health.NewRegistry(version)
-	healthRegistry.Register("clickhouse", func(ctx context.Context) error {
-		return chAdapter.Ping(ctx)
-	})
-	healthRegistry.Register("redis", func(ctx context.Context) error {
-		return redisAdapter.Ping(ctx)
-	})
+
+	var metricsRepo ports.MetricsRepository
+	var ineffRepo ports.InefficiencyRepository
+	var recRepo ports.RecommendationRepository
+	var alertRepo ports.AlertRepository
+
+	// Attempt ClickHouse connection, fallback to stateful memory repo if offline
+	chAdapter, err := clickhouse.NewAdapter(cfg.ClickHouse, log)
+	if err == nil {
+		defer chAdapter.Close()
+		metricsRepo = chAdapter
+		ineffRepo = clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
+		recRepo = clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
+		alertRepo = clickhouse.NewAlertAdapter(chAdapter.Conn(), log)
+
+		healthRegistry.Register("clickhouse", func(ctx context.Context) error {
+			return chAdapter.Ping(ctx)
+		})
+		log.Info().Msg("using ClickHouse OLAP repository")
+	} else {
+		log.Warn().Err(err).Msg("ClickHouse unavailable — initializing stateful in-memory repository")
+		memStore := memoryadapter.NewRepositoryStore(log)
+		metricsRepo = memStore
+		ineffRepo = memStore
+		recRepo = memStore
+		alertRepo = memStore
+	}
+
+	var redisClient *redis.Client
+	redisAdapter, err := redisadapter.NewAdapter(cfg.Redis, log)
+	if err == nil {
+		defer redisAdapter.Close()
+		redisClient = redisAdapter.Client()
+		healthRegistry.Register("redis", func(ctx context.Context) error {
+			return redisAdapter.Ping(ctx)
+		})
+	} else {
+		log.Warn().Err(err).Msg("Redis unavailable — continuing without Redis rate-limiting cache")
+	}
 
 	// Initialize services
 	ingestionSvc := ingestion.NewService(
-		chAdapter,
+		metricsRepo,
 		redisAdapter,
 		log,
 		cfg.ClickHouse.BatchSize,
 		cfg.ClickHouse.FlushInterval,
 	)
 
-	// Start periodic flush
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ingestionSvc.StartPeriodicFlush(ctx)
@@ -85,22 +103,17 @@ func main() {
 	}
 
 	router := gin.New()
-
-	authService := authsvc.NewService("obsygnal-pulse-secret-mvp", time.Hour, log)
-
-	ineffAdapter := clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
-	recAdapter := clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
-	alertAdapter := clickhouse.NewAlertAdapter(chAdapter.Conn(), log)
+	authService := authsvc.NewService("obsygnal-pulse-secret-mvp", 24*time.Hour, log)
 
 	routes.Register(router, routes.Deps{
 		Log:          log,
 		Registry:     healthRegistry,
-		MetricsRepo:  chAdapter,
-		IneffRepo:    ineffAdapter,
-		RecRepo:      recAdapter,
-		AlertRepo:    alertAdapter,
+		MetricsRepo:  metricsRepo,
+		IneffRepo:    ineffRepo,
+		RecRepo:      recRepo,
+		AlertRepo:    alertRepo,
 		IngestionSvc: ingestionSvc,
-		RedisClient:  redisAdapter.Client(),
+		RedisClient:  redisClient,
 		AuthService:  authService,
 	})
 
@@ -114,21 +127,19 @@ func main() {
 		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
 
-	// Graceful shutdown
 	go func() {
-		log.Info().Str("addr", addr).Msg("HTTP server starting")
+		log.Info().Str("addr", addr).Msg("HTTP server listening")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("HTTP server failed")
 		}
 	}()
 
-	// Wait for shutdown signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigCh
-	log.Info().Str("signal", sig.String()).Msg("shutting down")
+	log.Info().Str("signal", sig.String()).Msg("shutting down API server")
 
-	cancel() // Stop background workers
+	cancel()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
@@ -137,8 +148,6 @@ func main() {
 		log.Error().Err(err).Msg("shutdown error")
 	}
 
-	// Final flush
 	ingestionSvc.Flush(context.Background())
-
-	log.Info().Msg("server stopped")
+	log.Info().Msg("server stopped cleanly")
 }
