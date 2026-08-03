@@ -82,8 +82,8 @@ jobs:
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 50" | bc -l) )); then
-            echo "::warning::Coverage ${COVERAGE}% is below 50% target."
+          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            echo "::warning::Coverage ${COVERAGE}% is below 90% target."
           fi
 
       - name: Upload coverage
