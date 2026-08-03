@@ -67,9 +67,9 @@ func main() {
 		log.Warn().Err(err).Msg("ClickHouse unavailable — initializing stateful in-memory repository")
 		memStore := memoryadapter.NewRepositoryStore(log)
 		metricsRepo = memStore
-		ineffRepo = memStore
-		recRepo = memStore
-		alertRepo = memStore
+		ineffRepo = memStore.InefficiencyRepo()
+		recRepo = memStore.RecommendationRepo()
+		alertRepo = memStore.AlertRepo()
 	}
 
 	var redisClient *redis.Client

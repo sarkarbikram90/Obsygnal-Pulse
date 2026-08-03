@@ -32,9 +32,9 @@ func setupTestRouter() (*gin.Engine, *authsvc.Service) {
 		Log:          log,
 		Registry:     healthRegistry,
 		MetricsRepo:  memStore,
-		IneffRepo:    memStore,
-		RecRepo:      memStore,
-		AlertRepo:    memStore,
+		IneffRepo:    memStore.InefficiencyRepo(),
+		RecRepo:      memStore.RecommendationRepo(),
+		AlertRepo:    memStore.AlertRepo(),
 		IngestionSvc: ingestSvc,
 		AuthService:  authSvc,
 	})

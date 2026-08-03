@@ -17,18 +17,33 @@ import (
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 )
 
-// Repository Store manages in-memory data tables.
+// RepositoryStore manages in-memory data tables.
 type RepositoryStore struct {
-	gpuMetrics   []metrics.GPUMetric
-	nodeMetrics  []metrics.NodeMetric
-	ineffs       map[string]*detection.Inefficiency
-	recs         map[string]*recommendation.Recommendation
-	alerts       []ports.Alert
-	mu           sync.RWMutex
-	log          *logger.Logger
+	gpuMetrics  []metrics.GPUMetric
+	nodeMetrics []metrics.NodeMetric
+	ineffs      map[string]*detection.Inefficiency
+	recs        map[string]*recommendation.Recommendation
+	alerts      []ports.Alert
+	mu          sync.RWMutex
+	log         *logger.Logger
 }
 
-// NewRepositoryStore creates a initialized memory store.
+// InefficiencyMemoryRepo adapts RepositoryStore to ports.InefficiencyRepository.
+type InefficiencyMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// RecommendationMemoryRepo adapts RepositoryStore to ports.RecommendationRepository.
+type RecommendationMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// AlertMemoryRepo adapts RepositoryStore to ports.AlertRepository.
+type AlertMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// NewRepositoryStore creates an initialized memory store.
 func NewRepositoryStore(log *logger.Logger) *RepositoryStore {
 	store := &RepositoryStore{
 		ineffs: make(map[string]*detection.Inefficiency),
@@ -37,6 +52,18 @@ func NewRepositoryStore(log *logger.Logger) *RepositoryStore {
 	}
 	store.seedInitialData()
 	return store
+}
+
+func (s *RepositoryStore) InefficiencyRepo() ports.InefficiencyRepository {
+	return &InefficiencyMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) RecommendationRepo() ports.RecommendationRepository {
+	return &RecommendationMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) AlertRepo() ports.AlertRepository {
+	return &AlertMemoryRepo{store: s}
 }
 
 func (s *RepositoryStore) seedInitialData() {
@@ -79,12 +106,12 @@ func (s *RepositoryStore) seedInitialData() {
 
 	// Seed Recommendations
 	rec1 := recommendation.Recommendation{
-		ID:             "rec-001",
-		Category:       recommendation.CategoryReduceIdleTime,
-		Status:         recommendation.StatusActive,
-		Title:          "Release Idle H100 SXM GPU",
-		Description:    "GPU gpu-node-01-gpu-3 has been idle for 25 minutes. Terminate pod allocation to avoid $5.12/hr waste.",
-		Explanation:    "Continuous 0% compute utilization detected while instance cost accumulates. Releasing allocation saves $3,737.60/month.",
+		ID:              "rec-001",
+		Category:        recommendation.CategoryReduceIdleTime,
+		Status:          recommendation.StatusActive,
+		Title:           "Release Idle H100 SXM GPU",
+		Description:     "GPU gpu-node-01-gpu-3 has been idle for 25 minutes. Terminate pod allocation to avoid $5.12/hr waste.",
+		Explanation:     "Continuous 0% compute utilization detected while instance cost accumulates. Releasing allocation saves $3,737.60/month.",
 		ConfidenceScore: 0.96,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			CostPerHourUSD:   5.12,
@@ -102,12 +129,12 @@ func (s *RepositoryStore) seedInitialData() {
 	s.recs[rec1.ID] = &rec1
 
 	rec2 := recommendation.Recommendation{
-		ID:             "rec-002",
-		Category:       recommendation.CategoryIncreaseBatchSize,
-		Status:         recommendation.StatusActive,
-		Title:          "Increase PyTorch Micro-Batch Size",
-		Description:    "Increase micro-batch size from 16 to 64 on job-llama3-finetune-891 to saturate GPU tensor cores.",
-		Explanation:    "GPU memory utilization is only 22.1% out of 80GB VRAM. Doubling batch size increases GPU throughput by 3.2x.",
+		ID:              "rec-002",
+		Category:        recommendation.CategoryIncreaseBatchSize,
+		Status:          recommendation.StatusActive,
+		Title:           "Increase PyTorch Micro-Batch Size",
+		Description:     "Increase micro-batch size from 16 to 64 on job-llama3-finetune-891 to saturate GPU tensor cores.",
+		Explanation:     "GPU memory utilization is only 22.1% out of 80GB VRAM. Doubling batch size increases GPU throughput by 3.2x.",
 		ConfidenceScore: 0.88,
 		EstimatedSavings: recommendation.EstimatedSavings{
 			CostPerHourUSD:   2.40,
@@ -141,7 +168,7 @@ func (s *RepositoryStore) seedInitialData() {
 }
 
 // ============================================================
-// METRICS REPOSITORY
+// METRICS REPOSITORY (directly on RepositoryStore)
 // ============================================================
 
 func (s *RepositoryStore) InsertGPUMetrics(ctx context.Context, m []metrics.GPUMetric) error {
@@ -209,38 +236,38 @@ func (s *RepositoryStore) GetClusterOverview(ctx context.Context, clusterID stri
 // INEFFICIENCY REPOSITORY
 // ============================================================
 
-func (s *RepositoryStore) Insert(ctx context.Context, ineff *detection.Inefficiency) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (r *InefficiencyMemoryRepo) Insert(ctx context.Context, ineff *detection.Inefficiency) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
 	if ineff.ID == "" {
 		ineff.ID = uuid.New().String()
 	}
-	s.ineffs[ineff.ID] = ineff
+	r.store.ineffs[ineff.ID] = ineff
 	return nil
 }
 
-func (s *RepositoryStore) InsertBatch(ctx context.Context, ineffs []detection.Inefficiency) error {
+func (r *InefficiencyMemoryRepo) InsertBatch(ctx context.Context, ineffs []detection.Inefficiency) error {
 	for i := range ineffs {
-		_ = s.Insert(ctx, &ineffs[i])
+		_ = r.Insert(ctx, &ineffs[i])
 	}
 	return nil
 }
 
-func (s *RepositoryStore) GetByID(ctx context.Context, id string) (*detection.Inefficiency, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	ineff, exists := s.ineffs[id]
+func (r *InefficiencyMemoryRepo) GetByID(ctx context.Context, id string) (*detection.Inefficiency, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	ineff, exists := r.store.ineffs[id]
 	if !exists {
 		return nil, fmt.Errorf("inefficiency %s not found", id)
 	}
 	return ineff, nil
 }
 
-func (s *RepositoryStore) ListActive(ctx context.Context, clusterID string, limit, offset int) ([]detection.Inefficiency, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (r *InefficiencyMemoryRepo) ListActive(ctx context.Context, clusterID string, limit, offset int) ([]detection.Inefficiency, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
 	var list []detection.Inefficiency
-	for _, ineff := range s.ineffs {
+	for _, ineff := range r.store.ineffs {
 		if ineff.IsActive && (clusterID == "" || ineff.ClusterID == clusterID) {
 			list = append(list, *ineff)
 		}
@@ -248,11 +275,11 @@ func (s *RepositoryStore) ListActive(ctx context.Context, clusterID string, limi
 	return list, nil
 }
 
-func (s *RepositoryStore) ListByType(ctx context.Context, clusterID string, itype detection.InefficiencyType, from, to time.Time) ([]detection.Inefficiency, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (r *InefficiencyMemoryRepo) ListByType(ctx context.Context, clusterID string, itype detection.InefficiencyType, from, to time.Time) ([]detection.Inefficiency, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
 	var list []detection.Inefficiency
-	for _, ineff := range s.ineffs {
+	for _, ineff := range r.store.ineffs {
 		if ineff.Type == itype && (clusterID == "" || ineff.ClusterID == clusterID) {
 			list = append(list, *ineff)
 		}
@@ -260,18 +287,18 @@ func (s *RepositoryStore) ListByType(ctx context.Context, clusterID string, ityp
 	return list, nil
 }
 
-func (s *RepositoryStore) Resolve(ctx context.Context, id string, resolvedAt time.Time) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if ineff, ok := s.ineffs[id]; ok {
+func (r *InefficiencyMemoryRepo) Resolve(ctx context.Context, id string, resolvedAt time.Time) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if ineff, ok := r.store.ineffs[id]; ok {
 		ineff.IsActive = false
 		ineff.ResolvedAt = &resolvedAt
 	}
 	return nil
 }
 
-func (s *RepositoryStore) CountActive(ctx context.Context, clusterID string) (int, error) {
-	list, err := s.ListActive(ctx, clusterID, 1000, 0)
+func (r *InefficiencyMemoryRepo) CountActive(ctx context.Context, clusterID string) (int, error) {
+	list, err := r.ListActive(ctx, clusterID, 1000, 0)
 	return len(list), err
 }
 
@@ -279,28 +306,38 @@ func (s *RepositoryStore) CountActive(ctx context.Context, clusterID string) (in
 // RECOMMENDATION REPOSITORY
 // ============================================================
 
-func (s *RepositoryStore) InsertRec(ctx context.Context, rec *recommendation.Recommendation) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (r *RecommendationMemoryRepo) Insert(ctx context.Context, rec *recommendation.Recommendation) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
 	if rec.ID == "" {
 		rec.ID = uuid.New().String()
 	}
-	s.recs[rec.ID] = rec
+	r.store.recs[rec.ID] = rec
 	return nil
 }
 
-func (s *RepositoryStore) InsertRecBatch(ctx context.Context, recs []recommendation.Recommendation) error {
+func (r *RecommendationMemoryRepo) InsertBatch(ctx context.Context, recs []recommendation.Recommendation) error {
 	for i := range recs {
-		_ = s.InsertRec(ctx, &recs[i])
+		_ = r.Insert(ctx, &recs[i])
 	}
 	return nil
 }
 
-func (s *RepositoryStore) ListActiveRecs(ctx context.Context, clusterID string, limit, offset int) ([]recommendation.Recommendation, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (r *RecommendationMemoryRepo) GetByID(ctx context.Context, id string) (*recommendation.Recommendation, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	rec, exists := r.store.recs[id]
+	if !exists {
+		return nil, fmt.Errorf("recommendation %s not found", id)
+	}
+	return rec, nil
+}
+
+func (r *RecommendationMemoryRepo) ListActive(ctx context.Context, clusterID string, limit, offset int) ([]recommendation.Recommendation, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
 	var list []recommendation.Recommendation
-	for _, rec := range s.recs {
+	for _, rec := range r.store.recs {
 		if rec.Status == recommendation.StatusActive && (clusterID == "" || rec.ClusterID == clusterID) {
 			list = append(list, *rec)
 		}
@@ -308,26 +345,26 @@ func (s *RepositoryStore) ListActiveRecs(ctx context.Context, clusterID string, 
 	return list, nil
 }
 
-func (s *RepositoryStore) DismissRec(ctx context.Context, id, dismissedBy, reason string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if rec, ok := s.recs[id]; ok {
+func (r *RecommendationMemoryRepo) Dismiss(ctx context.Context, id, dismissedBy, reason string) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if rec, ok := r.store.recs[id]; ok {
 		rec.Status = recommendation.StatusDismissed
 	}
 	return nil
 }
 
-func (s *RepositoryStore) ApplyRec(ctx context.Context, id string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if rec, ok := s.recs[id]; ok {
+func (r *RecommendationMemoryRepo) Apply(ctx context.Context, id string) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if rec, ok := r.store.recs[id]; ok {
 		rec.Status = recommendation.StatusApplied
 	}
 	return nil
 }
 
-func (s *RepositoryStore) CountActiveRecs(ctx context.Context, clusterID string) (int, error) {
-	list, err := s.ListActiveRecs(ctx, clusterID, 1000, 0)
+func (r *RecommendationMemoryRepo) CountActive(ctx context.Context, clusterID string) (int, error) {
+	list, err := r.ListActive(ctx, clusterID, 1000, 0)
 	return len(list), err
 }
 
@@ -335,30 +372,30 @@ func (s *RepositoryStore) CountActiveRecs(ctx context.Context, clusterID string)
 // ALERT REPOSITORY
 // ============================================================
 
-func (s *RepositoryStore) InsertAlert(ctx context.Context, alert *ports.Alert) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (r *AlertMemoryRepo) Insert(ctx context.Context, alert *ports.Alert) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
 	if alert.ID == "" {
 		alert.ID = uuid.New().String()
 	}
-	s.alerts = append([]ports.Alert{*alert}, s.alerts...)
+	r.store.alerts = append([]ports.Alert{*alert}, r.store.alerts...)
 	return nil
 }
 
-func (s *RepositoryStore) ListRecentAlerts(ctx context.Context, clusterID string, limit int) ([]ports.Alert, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.alerts, nil
+func (r *AlertMemoryRepo) ListRecent(ctx context.Context, clusterID string, limit int) ([]ports.Alert, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	return r.store.alerts, nil
 }
 
-func (s *RepositoryStore) AcknowledgeAlert(ctx context.Context, id, acknowledgedBy string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (r *AlertMemoryRepo) Acknowledge(ctx context.Context, id, acknowledgedBy string) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
 	now := time.Now()
-	for i := range s.alerts {
-		if s.alerts[i].ID == id {
-			s.alerts[i].AcknowledgedAt = &now
-			s.alerts[i].AcknowledgedBy = acknowledgedBy
+	for i := range r.store.alerts {
+		if r.store.alerts[i].ID == id {
+			r.store.alerts[i].AcknowledgedAt = &now
+			r.store.alerts[i].AcknowledgedBy = acknowledgedBy
 		}
 	}
 	return nil

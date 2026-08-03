@@ -39,9 +39,9 @@ func TestEndToEnd_Pipeline(t *testing.T) {
 		Log:          log,
 		Registry:     healthRegistry,
 		MetricsRepo:  memStore,
-		IneffRepo:    memStore,
-		RecRepo:      memStore,
-		AlertRepo:    memStore,
+		IneffRepo:    memStore.InefficiencyRepo(),
+		RecRepo:      memStore.RecommendationRepo(),
+		AlertRepo:    memStore.AlertRepo(),
 		IngestionSvc: ingestSvc,
 		AuthService:  authSvc,
 	})
