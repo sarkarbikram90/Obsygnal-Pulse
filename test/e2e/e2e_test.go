@@ -88,8 +88,8 @@ func TestEndToEnd_Pipeline(t *testing.T) {
 		GPUUtilizationThreshold:     30.0,
 		MemoryUtilizationThreshold:  30.0,
 	}
-	detector := detectionSvc.NewService(memStore, memStore, nil, log, detConfig)
-	recommender := recSvc.NewService(memStore, nil, log)
+	detector := detectionSvc.NewService(memStore, memStore.InefficiencyRepo(), nil, log, detConfig)
+	recommender := recSvc.NewService(memStore.RecommendationRepo(), nil, log)
 
 	detector.OnDetection(func(ctx context.Context, ineff detection.Inefficiency) {
 		// Handled reactively
