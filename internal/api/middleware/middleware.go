@@ -75,9 +75,13 @@ func Recovery(log *logger.Logger) gin.HandlerFunc {
 }
 
 // CORS handles Cross-Origin Resource Sharing headers.
-func CORS() gin.HandlerFunc {
+func CORS(allowedOrigins ...string) gin.HandlerFunc {
+	origin := "*"
+	if len(allowedOrigins) > 0 && allowedOrigins[0] != "" {
+		origin = allowedOrigins[0]
+	}
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Request-ID")
 		c.Header("Access-Control-Expose-Headers", "X-Request-ID")

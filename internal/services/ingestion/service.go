@@ -179,12 +179,17 @@ func (s *Service) StartPeriodicFlush(ctx context.Context) {
 
 // Stats returns current ingestion statistics.
 func (s *Service) Stats() map[string]int64 {
+	s.bufferMu.Lock()
+	gpuLen := int64(len(s.gpuBuffer))
+	nodeLen := int64(len(s.nodeBuffer))
+	s.bufferMu.Unlock()
+
 	return map[string]int64{
 		"total_received":   s.totalReceived,
 		"total_inserted":   s.totalInserted,
 		"total_dropped":    s.totalDropped,
 		"total_duplicates": s.totalDuplicates,
-		"buffer_gpu_size":  int64(len(s.gpuBuffer)),
-		"buffer_node_size": int64(len(s.nodeBuffer)),
+		"buffer_gpu_size":  gpuLen,
+		"buffer_node_size": nodeLen,
 	}
 }

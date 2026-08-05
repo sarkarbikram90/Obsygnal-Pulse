@@ -1,15 +1,11 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 )
 
@@ -36,28 +32,24 @@ func RegisterUser(authSvc *authsvc.Service) gin.HandlerFunc {
 			return
 		}
 
-		userID := uuid.New().String()
-		orgID := uuid.New().String()
-		role := "owner"
-
-		token, err := authSvc.GenerateToken(userID, orgID, role)
+		user, org, token, err := authSvc.Register(c.Request.Context(), req.Email, req.Password, req.DisplayName, req.OrgName)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authentication token"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
 			"token": token,
 			"user": gin.H{
-				"id":           userID,
-				"email":        req.Email,
-				"display_name": req.DisplayName,
+				"id":           user.ID,
+				"email":        user.Email,
+				"display_name": user.DisplayName,
 			},
 			"organization": gin.H{
-				"id":   orgID,
-				"name": req.OrgName,
-				"tier": "pro",
-				"role": role,
+				"id":   org.ID,
+				"name": org.Name,
+				"tier": org.Tier,
+				"role": "owner",
 			},
 		})
 	}
@@ -72,29 +64,23 @@ func LoginUser(authSvc *authsvc.Service) gin.HandlerFunc {
 			return
 		}
 
-		// Demo authentication logic for SaaS starter
-		userID := "usr_" + hex.EncodeToString([]byte(req.Email))[:12]
-		orgID := "org_demo_101"
-		role := "admin"
-
-		token, err := authSvc.GenerateToken(userID, orgID, role)
+		user, member, token, err := authSvc.Authenticate(c.Request.Context(), req.Email, req.Password)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"token": token,
 			"user": gin.H{
-				"id":           userID,
-				"email":        req.Email,
-				"display_name": "AI Ops Admin",
+				"id":           user.ID,
+				"email":        user.Email,
+				"display_name": user.DisplayName,
 			},
 			"organization": gin.H{
-				"id":   orgID,
-				"name": "Obsygnal Labs Enterprise",
+				"id":   member.OrgID,
 				"tier": "pro",
-				"role": role,
+				"role": string(member.Role),
 			},
 		})
 	}
@@ -131,7 +117,7 @@ type APIKeyRequest struct {
 }
 
 // CreateAPIKey generates a new agent telemetry key with SHA-256 hash storage.
-func CreateAPIKey() gin.HandlerFunc {
+func CreateAPIKey(authSvc *authsvc.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req APIKeyRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -139,56 +125,62 @@ func CreateAPIKey() gin.HandlerFunc {
 			return
 		}
 
-		rawBytes := make([]byte, 16)
-		_, _ = rand.Read(rawBytes)
-		keySecret := "obsygnal_sec_" + hex.EncodeToString(rawBytes)
+		orgID := c.GetString("org_id")
+		if orgID == "" {
+			orgID = "org_demo_101"
+		}
+		userID := c.GetString("user_id")
+		if userID == "" {
+			userID = "usr_demo"
+		}
 
-		// Compute secure SHA-256 hash for database storage
-		hash := sha256.Sum256([]byte(keySecret))
-		keyHashStr := hex.EncodeToString(hash[:])
+		apiKey, secretKey, err := authSvc.CreateAPIKey(c.Request.Context(), orgID, userID, req.Name)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"id":          uuid.New().String(),
-			"name":        req.Name,
-			"prefix":      keySecret[:16] + "...",
-			"key_hash":    keyHashStr[:16] + "...", // Hashed in DB
-			"secret_key":  keySecret,               // Displayed once to user
-			"created_at":  time.Now(),
+			"id":          apiKey.ID,
+			"name":        apiKey.Name,
+			"prefix":      apiKey.Prefix,
+			"secret_key":  secretKey,
+			"created_at":  apiKey.CreatedAt,
 			"description": req.Description,
 		})
 	}
 }
 
 // ListAPIKeys returns active API keys.
-func ListAPIKeys() gin.HandlerFunc {
+func ListAPIKeys(authSvc *authsvc.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		orgID := c.GetString("org_id")
+		if orgID == "" {
+			orgID = "org_demo_101"
+		}
+		keys, err := authSvc.ListAPIKeys(c.Request.Context(), orgID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"api_keys": []gin.H{
-				{
-					"id":          "key-01",
-					"name":        "K8s-Production-Cluster-Agent",
-					"prefix":      "obsygnal_sec_a8b9...",
-					"created_at":  time.Now().Add(-72 * time.Hour),
-					"last_used":   time.Now().Add(-2 * time.Minute),
-					"status":      "active",
-				},
-				{
-					"id":          "key-02",
-					"name":        "Ray-Cluster-Collector",
-					"prefix":      "obsygnal_sec_f4e1...",
-					"created_at":  time.Now().Add(-24 * time.Hour),
-					"last_used":   time.Now().Add(-15 * time.Second),
-					"status":      "active",
-				},
-			},
+			"api_keys": keys,
 		})
 	}
 }
 
 // RevokeAPIKey deletes/revokes an API key.
-func RevokeAPIKey() gin.HandlerFunc {
+func RevokeAPIKey(authSvc *authsvc.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		keyID := c.Param("id")
+		orgID := c.GetString("org_id")
+		if orgID == "" {
+			orgID = "org_demo_101"
+		}
+		if err := authSvc.RevokeAPIKey(c.Request.Context(), keyID, orgID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"status": "revoked",
 			"id":     keyID,
@@ -197,18 +189,29 @@ func RevokeAPIKey() gin.HandlerFunc {
 }
 
 // GetUsageSummary returns billing and GPU-hours usage data.
-func GetUsageSummary() gin.HandlerFunc {
+func GetUsageSummary(repo ports.UsageRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		orgID := c.GetString("org_id")
+		if orgID == "" {
+			orgID = "org_demo_101"
+		}
+		if repo != nil {
+			summary, err := repo.GetUsageSummary(c.Request.Context(), orgID)
+			if err == nil && summary != nil {
+				c.JSON(http.StatusOK, summary)
+				return
+			}
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"organization_id": "org_demo_101",
-			"tier":            "pro",
-			"billing_cycle":   "August 2026",
-			"monitored_gpus":  16,
-			"gpu_hours_used":  3420.5,
-			"gpu_hours_limit": 5000.0,
-			"estimated_cost_usd": 12450.00,
+			"organization_id":       orgID,
+			"tier":                  "pro",
+			"billing_cycle":         "August 2026",
+			"monitored_gpus":        16,
+			"gpu_hours_used":        3420.5,
+			"gpu_hours_limit":       5000.0,
+			"estimated_cost_usd":    12450.00,
 			"estimated_savings_usd": 3820.00,
-			"active_clusters": 2,
+			"active_clusters":       2,
 		})
 	}
 }
@@ -217,35 +220,28 @@ func GetUsageSummary() gin.HandlerFunc {
 func UpgradeTier() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "upgraded",
+			"status":   "upgraded",
 			"new_tier": "enterprise",
-			"message": "Subscription plan successfully upgraded to Enterprise tier.",
+			"message":  "Subscription plan successfully upgraded to Enterprise tier.",
 		})
 	}
 }
 
 // ListAuditLogs returns SOC2 compliance audit events.
-func ListAuditLogs() gin.HandlerFunc {
+func ListAuditLogs(authSvc *authsvc.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		orgID := c.GetString("org_id")
+		if orgID == "" {
+			orgID = "org_demo_101"
+		}
+		events, err := authSvc.ListAuditEvents(c.Request.Context(), orgID, 50)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"events": []gin.H{
-				{
-					"id":         uuid.New().String(),
-					"actor":      "admin@obsygnal.io",
-					"action":     "recommendation.applied",
-					"resource":   "rec-idle-gpu-01",
-					"timestamp":  time.Now().Add(-10 * time.Minute),
-					"ip_address": "192.168.1.45",
-				},
-				{
-					"id":         uuid.New().String(),
-					"actor":      "api_key:obsygnal_sec_a8b9",
-					"action":     "telemetry.batch_ingest",
-					"resource":   "cluster-sim-01",
-					"timestamp":  time.Now().Add(-1 * time.Minute),
-					"ip_address": "10.244.0.12",
-				},
-			},
+			"events": events,
 		})
 	}
 }
+

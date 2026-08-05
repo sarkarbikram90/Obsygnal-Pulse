@@ -4,9 +4,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 )
 
 func TestGetCurrentUser(t *testing.T) {
@@ -23,11 +27,14 @@ func TestGetCurrentUser(t *testing.T) {
 
 func TestSaaSHandlers(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	log := logger.New("test")
+	authSvc := authsvc.NewService("test-jwt-secret-key-32-bytes-long", time.Hour, log)
+
 	r := gin.New()
-	r.GET("/keys", ListAPIKeys())
-	r.DELETE("/keys/:id", RevokeAPIKey())
+	r.GET("/keys", ListAPIKeys(authSvc))
+	r.DELETE("/keys/:id", RevokeAPIKey(authSvc))
 	r.POST("/upgrade", UpgradeTier())
-	r.GET("/audit", ListAuditLogs())
+	r.GET("/audit", ListAuditLogs(authSvc))
 
 	// Test ListAPIKeys
 	w := httptest.NewRecorder()
@@ -53,3 +60,4 @@ func TestSaaSHandlers(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+

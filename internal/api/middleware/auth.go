@@ -55,8 +55,13 @@ func RequirePermission(log *logger.Logger, authService *authsvc.Service, reqPerm
 			return
 		}
 
-		role, ok := roleVal.(auth.Role)
-		if !ok {
+		var role auth.Role
+		switch v := roleVal.(type) {
+		case auth.Role:
+			role = v
+		case string:
+			role = auth.Role(v)
+		default:
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "invalid role context"})
 			return
 		}

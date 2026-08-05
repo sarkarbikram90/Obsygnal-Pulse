@@ -35,4 +35,8 @@ spec:
           volumeMounts:
             - name: dev-nvidia
               mountPath: /dev/nvidia0
+      volumes:
+        - name: dev-nvidia
+          hostPath:
+            path: /dev/nvidia0
 {{- end }}

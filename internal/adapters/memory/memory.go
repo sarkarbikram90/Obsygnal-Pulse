@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	domainauth "github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/recommendation"
@@ -24,6 +25,12 @@ type RepositoryStore struct {
 	ineffs      map[string]*detection.Inefficiency
 	recs        map[string]*recommendation.Recommendation
 	alerts      []ports.Alert
+	users       map[string]*domainauth.User        // key: userID or email
+	orgs        map[string]*domainauth.Organization
+	orgMembers  map[string]*domainauth.OrgMember  // key: orgID:userID
+	apiKeys     map[string]*domainauth.APIKey     // key: keyID or keyHash
+	auditEvents []domainauth.AuditEvent
+	usage       *ports.UsageSummary
 	mu          sync.RWMutex
 	log         *logger.Logger
 }
@@ -43,12 +50,36 @@ type AlertMemoryRepo struct {
 	store *RepositoryStore
 }
 
+// AuthMemoryRepo adapts RepositoryStore to ports.AuthRepository.
+type AuthMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// APIKeyMemoryRepo adapts RepositoryStore to ports.APIKeyRepository.
+type APIKeyMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// AuditLogMemoryRepo adapts RepositoryStore to ports.AuditLogRepository.
+type AuditLogMemoryRepo struct {
+	store *RepositoryStore
+}
+
+// UsageMemoryRepo adapts RepositoryStore to ports.UsageRepository.
+type UsageMemoryRepo struct {
+	store *RepositoryStore
+}
+
 // NewRepositoryStore creates an initialized memory store.
 func NewRepositoryStore(log *logger.Logger) *RepositoryStore {
 	store := &RepositoryStore{
-		ineffs: make(map[string]*detection.Inefficiency),
-		recs:   make(map[string]*recommendation.Recommendation),
-		log:    log.WithComponent("memory-repo"),
+		ineffs:     make(map[string]*detection.Inefficiency),
+		recs:       make(map[string]*recommendation.Recommendation),
+		users:      make(map[string]*domainauth.User),
+		orgs:       make(map[string]*domainauth.Organization),
+		orgMembers: make(map[string]*domainauth.OrgMember),
+		apiKeys:    make(map[string]*domainauth.APIKey),
+		log:        log.WithComponent("memory-repo"),
 	}
 	store.seedInitialData()
 	return store
@@ -64,6 +95,22 @@ func (s *RepositoryStore) RecommendationRepo() ports.RecommendationRepository {
 
 func (s *RepositoryStore) AlertRepo() ports.AlertRepository {
 	return &AlertMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) AuthRepo() ports.AuthRepository {
+	return &AuthMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) APIKeyRepo() ports.APIKeyRepository {
+	return &APIKeyMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) AuditLogRepo() ports.AuditLogRepository {
+	return &AuditLogMemoryRepo{store: s}
+}
+
+func (s *RepositoryStore) UsageRepo() ports.UsageRepository {
+	return &UsageMemoryRepo{store: s}
 }
 
 func (s *RepositoryStore) seedInitialData() {
@@ -400,3 +447,203 @@ func (r *AlertMemoryRepo) Acknowledge(ctx context.Context, id, acknowledgedBy st
 	}
 	return nil
 }
+
+// ============================================================
+// AUTH REPOSITORY
+// ============================================================
+
+func (r *AuthMemoryRepo) CreateUser(ctx context.Context, user *domainauth.User) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if user.ID == "" {
+		user.ID = uuid.New().String()
+	}
+	r.store.users[user.ID] = user
+	r.store.users["email:"+user.Email] = user
+	return nil
+}
+
+func (r *AuthMemoryRepo) GetUserByEmail(ctx context.Context, email string) (*domainauth.User, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	user, exists := r.store.users["email:"+email]
+	if !exists {
+		return nil, fmt.Errorf("user with email %s not found", email)
+	}
+	return user, nil
+}
+
+func (r *AuthMemoryRepo) GetUserByID(ctx context.Context, id string) (*domainauth.User, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	user, exists := r.store.users[id]
+	if !exists {
+		return nil, fmt.Errorf("user %s not found", id)
+	}
+	return user, nil
+}
+
+func (r *AuthMemoryRepo) CreateOrg(ctx context.Context, org *domainauth.Organization) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if org.ID == "" {
+		org.ID = uuid.New().String()
+	}
+	r.store.orgs[org.ID] = org
+	return nil
+}
+
+func (r *AuthMemoryRepo) GetOrgByID(ctx context.Context, id string) (*domainauth.Organization, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	org, exists := r.store.orgs[id]
+	if !exists {
+		return nil, fmt.Errorf("organization %s not found", id)
+	}
+	return org, nil
+}
+
+func (r *AuthMemoryRepo) AddOrgMember(ctx context.Context, member *domainauth.OrgMember) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	key := fmt.Sprintf("%s:%s", member.OrgID, member.UserID)
+	r.store.orgMembers[key] = member
+	return nil
+}
+
+func (r *AuthMemoryRepo) GetOrgMember(ctx context.Context, orgID, userID string) (*domainauth.OrgMember, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	key := fmt.Sprintf("%s:%s", orgID, userID)
+	member, exists := r.store.orgMembers[key]
+	if !exists {
+		return nil, fmt.Errorf("org member not found for org %s and user %s", orgID, userID)
+	}
+	return member, nil
+}
+
+// ============================================================
+// API KEY REPOSITORY
+// ============================================================
+
+func (r *APIKeyMemoryRepo) CreateAPIKey(ctx context.Context, key *domainauth.APIKey) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if key.ID == "" {
+		key.ID = uuid.New().String()
+	}
+	r.store.apiKeys[key.ID] = key
+	if key.KeyHash != "" {
+		r.store.apiKeys["hash:"+key.KeyHash] = key
+	}
+	return nil
+}
+
+func (r *APIKeyMemoryRepo) ListAPIKeys(ctx context.Context, orgID string) ([]domainauth.APIKey, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	var keys []domainauth.APIKey
+	seen := make(map[string]bool)
+	for id, k := range r.store.apiKeys {
+		if !seen[k.ID] && k.OrgID == orgID && id == k.ID {
+			seen[k.ID] = true
+			keys = append(keys, *k)
+		}
+	}
+	return keys, nil
+}
+
+func (r *APIKeyMemoryRepo) RevokeAPIKey(ctx context.Context, id, orgID string) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if k, exists := r.store.apiKeys[id]; exists {
+		delete(r.store.apiKeys, id)
+		delete(r.store.apiKeys, "hash:"+k.KeyHash)
+	}
+	return nil
+}
+
+func (r *APIKeyMemoryRepo) GetAPIKeyByHash(ctx context.Context, hash string) (*domainauth.APIKey, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	key, exists := r.store.apiKeys["hash:"+hash]
+	if !exists {
+		return nil, fmt.Errorf("API key hash not found")
+	}
+	return key, nil
+}
+
+// ============================================================
+// AUDIT LOG REPOSITORY
+// ============================================================
+
+func (r *AuditLogMemoryRepo) InsertAuditEvent(ctx context.Context, event *domainauth.AuditEvent) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if event.ID == "" {
+		event.ID = uuid.New().String()
+	}
+	if event.CreatedAt.IsZero() {
+		event.CreatedAt = time.Now()
+	}
+	r.store.auditEvents = append([]domainauth.AuditEvent{*event}, r.store.auditEvents...)
+	return nil
+}
+
+func (r *AuditLogMemoryRepo) ListAuditEvents(ctx context.Context, orgID string, limit int) ([]domainauth.AuditEvent, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	var result []domainauth.AuditEvent
+	for _, evt := range r.store.auditEvents {
+		if orgID == "" || evt.OrgID == orgID {
+			result = append(result, evt)
+			if limit > 0 && len(result) >= limit {
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
+// ============================================================
+// USAGE REPOSITORY
+// ============================================================
+
+func (r *UsageMemoryRepo) GetUsageSummary(ctx context.Context, orgID string) (*ports.UsageSummary, error) {
+	r.store.mu.RLock()
+	defer r.store.mu.RUnlock()
+	if r.store.usage != nil && (r.store.usage.OrganizationID == orgID || orgID == "") {
+		return r.store.usage, nil
+	}
+	return &ports.UsageSummary{
+		OrganizationID:      orgID,
+		Tier:                "pro",
+		BillingCycle:        time.Now().Format("January 2006"),
+		MonitoredGPUs:       16,
+		GPUHoursUsed:        3420.5,
+		GPUHoursLimit:       5000.0,
+		EstimatedCostUSD:    12450.00,
+		EstimatedSavingsUSD: 3820.00,
+		ActiveClusters:      2,
+		UpdatedAt:           time.Now(),
+	}, nil
+}
+
+func (r *UsageMemoryRepo) RecordUsage(ctx context.Context, orgID string, gpuHours float64) error {
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	if r.store.usage == nil {
+		r.store.usage = &ports.UsageSummary{
+			OrganizationID: orgID,
+			Tier:           "pro",
+			BillingCycle:   time.Now().Format("January 2006"),
+			GPUHoursUsed:   gpuHours,
+			UpdatedAt:      time.Now(),
+		}
+	} else {
+		r.store.usage.GPUHoursUsed += gpuHours
+		r.store.usage.UpdatedAt = time.Now()
+	}
+	return nil
+}
+

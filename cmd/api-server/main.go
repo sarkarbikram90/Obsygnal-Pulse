@@ -50,6 +50,11 @@ func main() {
 	var recRepo ports.RecommendationRepository
 	var alertRepo ports.AlertRepository
 
+	var usageRepo ports.UsageRepository
+	var authRepo ports.AuthRepository
+	var apiKeyRepo ports.APIKeyRepository
+	var auditRepo ports.AuditLogRepository
+
 	// Attempt ClickHouse connection, fallback to stateful memory repo if offline
 	chAdapter, err := clickhouse.NewAdapter(cfg.ClickHouse, log)
 	if err == nil {
@@ -70,6 +75,10 @@ func main() {
 		ineffRepo = memStore.InefficiencyRepo()
 		recRepo = memStore.RecommendationRepo()
 		alertRepo = memStore.AlertRepo()
+		authRepo = memStore.AuthRepo()
+		apiKeyRepo = memStore.APIKeyRepo()
+		auditRepo = memStore.AuditLogRepo()
+		usageRepo = memStore.UsageRepo()
 	}
 
 	var redisClient *redis.Client
@@ -102,8 +111,22 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	jwtSecret := cfg.Auth.JWTSecret
+	if jwtSecret == "" {
+		jwtSecret = "obsygnal-pulse-secret-dev-key-32b"
+	}
+
+	authService := authsvc.NewService(
+		jwtSecret,
+		cfg.Auth.JWTExpiry,
+		log,
+		authsvc.WithAuthRepo(authRepo),
+		authsvc.WithAPIKeyRepo(apiKeyRepo),
+		authsvc.WithAuditRepo(auditRepo),
+		authsvc.WithUsageRepo(usageRepo),
+	)
+
 	router := gin.New()
-	authService := authsvc.NewService("obsygnal-pulse-secret-mvp", 24*time.Hour, log)
 
 	routes.Register(router, routes.Deps{
 		Log:          log,
@@ -112,9 +135,11 @@ func main() {
 		IneffRepo:    ineffRepo,
 		RecRepo:      recRepo,
 		AlertRepo:    alertRepo,
+		UsageRepo:    usageRepo,
 		IngestionSvc: ingestionSvc,
 		RedisClient:  redisClient,
 		AuthService:  authService,
+		CORSOrigins:  cfg.Server.CORSAllowedOrigins,
 	})
 
 	// Start HTTP server

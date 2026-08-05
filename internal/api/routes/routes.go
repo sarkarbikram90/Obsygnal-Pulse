@@ -24,9 +24,11 @@ type Deps struct {
 	IneffRepo    ports.InefficiencyRepository
 	RecRepo      ports.RecommendationRepository
 	AlertRepo    ports.AlertRepository
+	UsageRepo    ports.UsageRepository
 	IngestionSvc *ingestion.Service
 	RedisClient  *redis.Client
 	AuthService  *authsvc.Service
+	CORSOrigins  string
 }
 
 // Register sets up all API routes on the provided Gin engine.
@@ -35,7 +37,7 @@ func Register(r *gin.Engine, deps Deps) {
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger(deps.Log))
 	r.Use(middleware.Recovery(deps.Log))
-	r.Use(middleware.CORS())
+	r.Use(middleware.CORS(deps.CORSOrigins))
 	r.Use(middleware.SecurityHeaders())
 
 	// Apply rate limiting if redis is provided
@@ -89,16 +91,16 @@ func Register(r *gin.Engine, deps Deps) {
 			protected.GET("/nodes", handlers.ListNodes())
 
 			// API Keys
-			protected.POST("/api-keys", handlers.CreateAPIKey())
-			protected.GET("/api-keys", handlers.ListAPIKeys())
-			protected.DELETE("/api-keys/:id", handlers.RevokeAPIKey())
+			protected.POST("/api-keys", handlers.CreateAPIKey(deps.AuthService))
+			protected.GET("/api-keys", handlers.ListAPIKeys(deps.AuthService))
+			protected.DELETE("/api-keys/:id", handlers.RevokeAPIKey(deps.AuthService))
 
 			// SaaS Billing & Metering
-			protected.GET("/billing/usage", handlers.GetUsageSummary())
+			protected.GET("/billing/usage", handlers.GetUsageSummary(deps.UsageRepo))
 			protected.POST("/billing/upgrade", handlers.UpgradeTier())
 
 			// Compliance Audit Logs
-			protected.GET("/audit-logs", handlers.ListAuditLogs())
+			protected.GET("/audit-logs", handlers.ListAuditLogs(deps.AuthService))
 		}
 	}
 }

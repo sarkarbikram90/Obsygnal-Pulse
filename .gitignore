@@ -44,5 +44,6 @@ deploy/terraform/**/.terraform.lock.hcl
 
 # Temporary
 tmp/
+.gotmp/
 *.tmp
 *.log

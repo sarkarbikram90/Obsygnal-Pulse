@@ -26,12 +26,13 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
-	Host         string
-	Port         int
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
-	Environment  string // "development", "staging", "production"
+	Host               string
+	Port               int
+	ReadTimeout        time.Duration
+	WriteTimeout       time.Duration
+	IdleTimeout        time.Duration
+	Environment        string // "development", "staging", "production"
+	CORSAllowedOrigins string
 }
 
 // ClickHouseConfig holds ClickHouse connection configuration.
@@ -149,8 +150,9 @@ func Load() (*Config, error) {
 			Port:         getEnvInt("SERVER_PORT", 8080),
 			ReadTimeout:  getEnvDuration("SERVER_READ_TIMEOUT", 30*time.Second),
 			WriteTimeout: getEnvDuration("SERVER_WRITE_TIMEOUT", 30*time.Second),
-			IdleTimeout:  getEnvDuration("SERVER_IDLE_TIMEOUT", 120*time.Second),
-			Environment:  getEnv("ENVIRONMENT", "development"),
+			IdleTimeout:        getEnvDuration("SERVER_IDLE_TIMEOUT", 120*time.Second),
+			Environment:        getEnv("ENVIRONMENT", "development"),
+			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "*"),
 		},
 		ClickHouse: ClickHouseConfig{
 			Host:            getEnv("CLICKHOUSE_HOST", "localhost"),

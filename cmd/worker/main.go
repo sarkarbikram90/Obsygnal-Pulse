@@ -16,12 +16,14 @@ import (
 	"syscall"
 
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/clickhouse"
+	memoryadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/memory"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/nats"
 	redisadapter "github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/redis"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/config"
 	detectiondomain "github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/detection"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
+	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/detection"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/recommendation"
@@ -43,29 +45,39 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize infrastructure adapters
+	var metricsRepo ports.MetricsRepository
+	var ineffRepo ports.InefficiencyRepository
+	var recRepo ports.RecommendationRepository
+
+	// Initialize infrastructure adapters with fallback for standalone/dev environments
 	chAdapter, err := clickhouse.NewAdapter(cfg.ClickHouse, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to ClickHouse")
+	if err == nil {
+		defer chAdapter.Close()
+		metricsRepo = chAdapter
+		ineffRepo = clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
+		recRepo = clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
+		log.Info().Msg("worker connected to ClickHouse OLAP")
+	} else {
+		log.Warn().Err(err).Msg("ClickHouse unavailable — worker initializing stateful in-memory repository")
+		memStore := memoryadapter.NewRepositoryStore(log)
+		metricsRepo = memStore
+		ineffRepo = memStore.InefficiencyRepo()
+		recRepo = memStore.RecommendationRepo()
 	}
-	defer chAdapter.Close()
 
-	redisAdapter, err := redisadapter.NewAdapter(cfg.Redis, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to Redis")
+	var cacheStore ports.CacheStore
+	rAdapter, err := redisadapter.NewAdapter(cfg.Redis, log)
+	if err == nil {
+		defer rAdapter.Close()
+		cacheStore = rAdapter
+	} else {
+		log.Warn().Err(err).Msg("Redis unavailable — worker running without cache layer")
 	}
-	defer redisAdapter.Close()
-
-	natsAdapter, err := nats.NewAdapter(cfg.Nats, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to NATS JetStream")
-	}
-	defer natsAdapter.Close()
 
 	// Initialize ingestion service
 	ingestionSvc := ingestion.NewService(
-		chAdapter,
-		redisAdapter,
+		metricsRepo,
+		cacheStore,
 		log,
 		cfg.ClickHouse.BatchSize,
 		cfg.ClickHouse.FlushInterval,
@@ -74,20 +86,22 @@ func main() {
 	// Start background flush loop for the batcher
 	ingestionSvc.StartPeriodicFlush(ctx)
 
-	// Subscribe to NATS telemetry stream
-	log.Info().Msg("subscribing to telemetry stream...")
-	err = natsAdapter.SubscribeIngester(ctx, func(msgCtx context.Context, batch *metrics.MetricBatch) error {
-		return ingestionSvc.ProcessBatch(msgCtx, batch)
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to start NATS consumer")
+	// Subscribe to NATS telemetry stream if available
+	natsAdapter, err := nats.NewAdapter(cfg.Nats, log)
+	if err == nil {
+		defer natsAdapter.Close()
+		log.Info().Msg("subscribing to NATS telemetry stream...")
+		if err := natsAdapter.SubscribeIngester(ctx, func(msgCtx context.Context, batch *metrics.MetricBatch) error {
+			return ingestionSvc.ProcessBatch(msgCtx, batch)
+		}); err != nil {
+			log.Warn().Err(err).Msg("failed to subscribe to NATS stream")
+		}
+	} else {
+		log.Warn().Err(err).Msg("NATS unavailable — worker running in standalone evaluation mode")
 	}
 
-	ineffRepo := clickhouse.NewInefficiencyAdapter(chAdapter.Conn(), log)
-	recRepo := clickhouse.NewRecommendationAdapter(chAdapter.Conn(), log)
-
-	detectionSvc := detection.NewService(chAdapter, ineffRepo, redisAdapter, log, cfg.Detection)
-	recommendationSvc := recommendation.NewService(recRepo, redisAdapter, log)
+	detectionSvc := detection.NewService(metricsRepo, ineffRepo, cacheStore, log, cfg.Detection)
+	recommendationSvc := recommendation.NewService(recRepo, cacheStore, log)
 
 	// Wire detection → recommendation pipeline
 	detectionSvc.OnDetection(func(ctx context.Context, ineff detectiondomain.Inefficiency) {
