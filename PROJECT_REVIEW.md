@@ -233,7 +233,7 @@ The [Makefile](file:///c:/Users/bikrams/GPU-Enhance/Obsygnal-Pulse/Makefile) has
 | 8 | **No database migrations for ClickHouse tables** | Verified `001_initial_schema.sql` and `002_multi_tenant_audit.sql` containing full DDL for `inefficiencies`, `recommendations`, `alerts`, and `audit_events`. | ✅ RESOLVED |
 | 9 | **CORS is wildcard `*`** | Made CORS middleware in `internal/api/middleware/middleware.go` configurable via `CORS_ALLOWED_ORIGINS` env var in `internal/config/config.go`. | ✅ RESOLVED |
 | 10 | **`RequirePermission` middleware type mismatch** | Updated `RequirePermission` in `internal/api/middleware/auth.go` using a type switch handling both `auth.Role` and `string`. | ✅ RESOLVED |
-| 11 | **go.mod vs CI Go version mismatch** | Standardized Go version to `1.24` across `go.mod`, `.github/workflows/ci.yml`, `Makefile`, and `README.md`. | ✅ RESOLVED |
+| 11 | **go.mod vs CI Go version mismatch** | Standardized Go version to `1.25` across `go.mod` (`go 1.25.0`) and `.github/workflows/ci.yml` (`GO_VERSION: '1.25'`). | ✅ RESOLVED |
 
 ### Low Priority / Nice-to-Have — ✅ ALL IMPLEMENTED
 
