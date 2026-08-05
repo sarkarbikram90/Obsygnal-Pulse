@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSlackAdapter(t *testing.T) {

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/domain/metrics"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/ports"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockMetricsRepo struct {

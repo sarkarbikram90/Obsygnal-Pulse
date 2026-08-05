@@ -25,10 +25,10 @@ type RepositoryStore struct {
 	ineffs      map[string]*detection.Inefficiency
 	recs        map[string]*recommendation.Recommendation
 	alerts      []ports.Alert
-	users       map[string]*domainauth.User        // key: userID or email
+	users       map[string]*domainauth.User // key: userID or email
 	orgs        map[string]*domainauth.Organization
-	orgMembers  map[string]*domainauth.OrgMember  // key: orgID:userID
-	apiKeys     map[string]*domainauth.APIKey     // key: keyID or keyHash
+	orgMembers  map[string]*domainauth.OrgMember // key: orgID:userID
+	apiKeys     map[string]*domainauth.APIKey    // key: keyID or keyHash
 	auditEvents []domainauth.AuditEvent
 	usage       *ports.UsageSummary
 	mu          sync.RWMutex
@@ -646,4 +646,3 @@ func (r *UsageMemoryRepo) RecordUsage(ctx context.Context, orgID string, gpuHour
 	}
 	return nil
 }
-

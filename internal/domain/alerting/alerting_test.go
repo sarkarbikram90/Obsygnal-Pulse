@@ -33,15 +33,15 @@ func TestAlertCondition_Evaluate(t *testing.T) {
 func TestAlertRule(t *testing.T) {
 	now := time.Now()
 	rule := AlertRule{
-		ID:          "rule-01",
-		Name:        "High Temp",
-		Enabled:     true,
-		Severity:    "high",
-		Condition:   AlertCondition{Operator: "gt", Threshold: 85.0},
-		Channels:    []string{"slack"},
-		Cooldown:    5 * time.Minute,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:        "rule-01",
+		Name:      "High Temp",
+		Enabled:   true,
+		Severity:  "high",
+		Condition: AlertCondition{Operator: "gt", Threshold: 85.0},
+		Channels:  []string{"slack"},
+		Cooldown:  5 * time.Minute,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	assert.Equal(t, "rule-01", rule.ID)

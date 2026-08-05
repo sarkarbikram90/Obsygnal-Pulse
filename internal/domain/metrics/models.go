@@ -46,9 +46,9 @@ type GPUMetric struct {
 	TensorCoreUtil    float64 `json:"tensor_core_utilization"`   // Matrix multiplier activity
 
 	// Deep AI Training & LLM Inference Profiler
-	CUDAMemReserved     uint64  `json:"cuda_memory_reserved_bytes"`   // PyTorch memory_reserved()
+	CUDAMemReserved    uint64  `json:"cuda_memory_reserved_bytes"`     // PyTorch memory_reserved()
 	KVCacheUtilization float64 `json:"kv_cache_utilization,omitempty"` // vLLM PagedAttention KV Cache %
-	TokensPerSecond     float64 `json:"tokens_per_second,omitempty"`    // LLM inference throughput
+	TokensPerSecond    float64 `json:"tokens_per_second,omitempty"`    // LLM inference throughput
 
 	// Process info
 	RunningProcesses int    `json:"running_processes"`

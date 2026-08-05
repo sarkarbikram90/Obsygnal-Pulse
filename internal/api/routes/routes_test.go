@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/adapters/memory"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/health"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/pkg/logger"
 	authsvc "github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/auth"
 	"github.com/sarkarbikram90/Obsygnal-Pulse/internal/services/ingestion"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRegisterRoutes(t *testing.T) {

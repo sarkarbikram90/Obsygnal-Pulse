@@ -146,10 +146,10 @@ type NatsConfig struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
-			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
-			Port:         getEnvInt("SERVER_PORT", 8080),
-			ReadTimeout:  getEnvDuration("SERVER_READ_TIMEOUT", 30*time.Second),
-			WriteTimeout: getEnvDuration("SERVER_WRITE_TIMEOUT", 30*time.Second),
+			Host:               getEnv("SERVER_HOST", "0.0.0.0"),
+			Port:               getEnvInt("SERVER_PORT", 8080),
+			ReadTimeout:        getEnvDuration("SERVER_READ_TIMEOUT", 30*time.Second),
+			WriteTimeout:       getEnvDuration("SERVER_WRITE_TIMEOUT", 30*time.Second),
 			IdleTimeout:        getEnvDuration("SERVER_IDLE_TIMEOUT", 120*time.Second),
 			Environment:        getEnv("ENVIRONMENT", "development"),
 			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "*"),

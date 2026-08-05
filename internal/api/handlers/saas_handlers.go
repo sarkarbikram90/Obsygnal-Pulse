@@ -244,4 +244,3 @@ func ListAuditLogs(authSvc *authsvc.Service) gin.HandlerFunc {
 		})
 	}
 }
-

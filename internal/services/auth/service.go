@@ -20,13 +20,13 @@ import (
 
 // Service handles user authentication, session management, and authorization.
 type Service struct {
-	jwtSecret   []byte
-	jwtExpiry   time.Duration
-	authRepo    ports.AuthRepository
-	apiKeyRepo  ports.APIKeyRepository
-	auditRepo   ports.AuditLogRepository
-	usageRepo   ports.UsageRepository
-	log         *logger.Logger
+	jwtSecret  []byte
+	jwtExpiry  time.Duration
+	authRepo   ports.AuthRepository
+	apiKeyRepo ports.APIKeyRepository
+	auditRepo  ports.AuditLogRepository
+	usageRepo  ports.UsageRepository
+	log        *logger.Logger
 }
 
 // Option configures Service dependencies.
@@ -341,4 +341,3 @@ func (s *Service) ListAuditEvents(ctx context.Context, orgID string, limit int) 
 		{ID: uuid.New().String(), OrgID: orgID, ActorID: "obsygnal_sec_a8b9", ActorType: "api_key", Action: "telemetry.batch_ingest", Resource: "cluster-sim-01", CreatedAt: time.Now().Add(-1 * time.Minute)},
 	}, nil
 }
-
