@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: collector
+  namespace: obsygnal-pulse
+  labels:
+    app: obsygnal-pulse
+    component: collector
+spec:
+  selector:
+    matchLabels:
+      app: obsygnal-pulse
+      component: collector
+  template:
+    metadata:
+      labels:
+        app: obsygnal-pulse
+        component: collector
+    spec:
+      serviceAccountName: obsygnal-pulse-sa
+      nodeSelector:
+        accelerator: nvidia-gpu
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: collector
+          image: ghcr.io/sarkarbikram90/obsygnal-agent:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OBSYGNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsygnal-pulse-secrets
+                  key: OBSYGNAL_API_KEY
+            - name: PROMETHEUS_URL
+              value: "http://prometheus-k8s.monitoring.svc:9090"
+            - name: SCRAPE_INTERVAL
+              value: "15s"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: dev-nvidia
+              mountPath: /dev/nvidia0
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+      volumes:
+        - name: dev-nvidia
+          hostPath:
+            path: /dev/nvidia0
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: proc
+          hostPath:
+            path: /proc

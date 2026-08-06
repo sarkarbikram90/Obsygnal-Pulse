@@ -76,9 +76,12 @@ docker-down: ## Stop infrastructure services
 docker-clean: ## Stop and remove all data
 	docker compose down -v
 
-docker-build: ## Build Docker images
-	docker build -f deploy/docker/api-server.Dockerfile --build-arg SERVICE=api-server -t obsygnal-pulse/api-server:latest .
-	docker build -f deploy/docker/api-server.Dockerfile --build-arg SERVICE=simulator -t obsygnal-pulse/simulator:latest .
+docker-build: ## Build Docker images for all microservices
+	docker build --target api-server -t obsygnal-pulse/api-server:latest .
+	docker build --target worker     -t obsygnal-pulse/worker:latest .
+	docker build --target collector  -t obsygnal-pulse/agent:latest .
+	docker build --target web        -t obsygnal-pulse/web:latest .
+	docker build --target simulator  -t obsygnal-pulse/simulator:latest .
 
 # ============================================================
 # Database

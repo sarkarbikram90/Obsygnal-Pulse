@@ -1,10 +1,79 @@
-# Default Helm values for Obsygnal-Pulse deployment
+# Default Helm values for Obsygnal-Pulse production deployment
 
 global:
   environment: production
   orgId: "org_enterprise_01"
 
-# Agent DaemonSet values
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Control Plane API Server
+server:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/sarkarbikram90/obsygnal-api-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+# Background Worker (Detection & Recommendation Engine)
+worker:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/sarkarbikram90/obsygnal-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 85
+
+# Web UI Dashboard (React Single-Page Application)
+web:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/sarkarbikram90/obsygnal-web
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Edge GPU Collector Agent DaemonSet
 agent:
   enabled: true
   image:
@@ -24,27 +93,43 @@ agent:
   nodeSelector:
     accelerator: nvidia-gpu
 
-# Control Plane API Server values
-server:
+# External Ingress Configuration
+ingress:
   enabled: true
-  replicaCount: 2
-  image:
-    repository: ghcr.io/sarkarbikram90/obsygnal-api-server
-    tag: latest
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8080
-  resources:
-    limits:
-      cpu: 2000m
-      memory: 2Gi
-    requests:
-      cpu: 500m
-      memory: 512Mi
-  env:
-    SERVER_ENVIRONMENT: production
-    CLICKHOUSE_HOST: "clickhouse.obsygnal.svc"
-    CLICKHOUSE_PORT: "9000"
-    REDIS_HOST: "redis.obsygnal.svc"
-    REDIS_PORT: "6379"
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: pulse.obsygnal.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend: server
+        - path: /
+          pathType: Prefix
+          backend: web
+  tls:
+    - secretName: obsygnal-pulse-tls
+      hosts:
+        - pulse.obsygnal.com
+
+# Backend Infrastructure Connection Settings
+config:
+  serverPort: "8080"
+  clickhouseHost: "clickhouse.obsygnal.svc.cluster.local"
+  clickhousePort: "9000"
+  clickhouseDatabase: "obsygnal"
+  redisHost: "redis.obsygnal.svc.cluster.local"
+  redisPort: "6379"
+  natsUrl: "nats://nats.obsygnal.svc.cluster.local:4222"
+  corsAllowedOrigins: "https://pulse.obsygnal.com"
+  detectionGpuThreshold: "20"
+  detectionMemThreshold: "15"
+  detectionEvaluationInterval: "60s"
+
+secrets:
+  jwtSecret: "CHANGE_ME_IN_PRODUCTION_JWT_SECRET_STRING_32_BYTES"
+  clickhouseUser: "default"
+  clickhousePassword: "CHANGE_ME_CLICKHOUSE_PASSWORD"
+  redisPassword: ""

@@ -50,6 +50,11 @@ jobs:
             echo "$UNFORMATTED"
           fi
 
+      - name: Helm Chart Linting
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm lint deploy/helm/obsygnal-pulse
+
   # ============================================================
   # Test & Coverage
   # ============================================================
@@ -137,9 +142,42 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/docker/api-server.Dockerfile
-          build-args: SERVICE=api-server
+          file: Dockerfile
+          target: api-server
           tags: obsygnal-pulse/api-server:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Worker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: worker
+          tags: obsygnal-pulse/worker:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Collector Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: collector
+          tags: obsygnal-pulse/collector:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Web Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: web
+          tags: obsygnal-pulse/web:${{ github.sha }}
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -148,8 +186,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/docker/api-server.Dockerfile
-          build-args: SERVICE=simulator
+          file: Dockerfile
+          target: simulator
           tags: obsygnal-pulse/simulator:${{ github.sha }}
           load: true
           cache-from: type=gha

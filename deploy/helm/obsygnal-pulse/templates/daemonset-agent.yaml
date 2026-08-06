@@ -4,28 +4,38 @@ kind: DaemonSet
 metadata:
   name: {{ include "obsygnal-pulse.fullname" . }}-agent
   labels:
+    {{- include "obsygnal-pulse.labels" . | nindent 4 }}
     app.kubernetes.io/component: agent
-    app.kubernetes.io/part-of: obsygnal-pulse
 spec:
   selector:
     matchLabels:
+      {{- include "obsygnal-pulse.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: agent
   template:
     metadata:
       labels:
+        {{- include "obsygnal-pulse.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: agent
     spec:
+      serviceAccountName: {{ include "obsygnal-pulse.serviceAccountName" . }}
       {{- with .Values.agent.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
         - name: agent
           image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           env:
             - name: OBSYGNAL_API_KEY
-              value: {{ .Values.agent.apiKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "obsygnal-pulse.fullname" . }}-secrets
+                  key: OBSYGNAL_API_KEY
             - name: PROMETHEUS_URL
               value: {{ .Values.agent.prometheusUrl | quote }}
             - name: SCRAPE_INTERVAL
@@ -35,8 +45,20 @@ spec:
           volumeMounts:
             - name: dev-nvidia
               mountPath: /dev/nvidia0
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: proc
+              mountPath: /proc
+              readOnly: true
       volumes:
         - name: dev-nvidia
           hostPath:
             path: /dev/nvidia0
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: proc
+          hostPath:
+            path: /proc
 {{- end }}

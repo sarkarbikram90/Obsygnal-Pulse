@@ -26,9 +26,15 @@ spec:
         app: obsygnal-pulse
         component: api-server
     spec:
+      serviceAccountName: obsygnal-pulse-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: api-server
-          image: obsygnal/obsygnal-pulse:latest
+          image: ghcr.io/sarkarbikram90/obsygnal-api-server:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
@@ -51,11 +57,11 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 250m
+              memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 1000m
+              memory: 1Gi
 ---
 apiVersion: v1
 kind: Service
@@ -86,6 +92,8 @@ data:
   CLICKHOUSE_DATABASE: "obsygnal"
   REDIS_HOST: "redis.obsygnal-pulse.svc.cluster.local"
   REDIS_PORT: "6379"
+  NATS_URL: "nats://nats.obsygnal-pulse.svc.cluster.local:4222"
+  CORS_ALLOWED_ORIGINS: "https://pulse.obsygnal.com"
   DETECTION_GPU_UTIL_THRESHOLD: "20"
   DETECTION_MEM_UTIL_THRESHOLD: "15"
   DETECTION_EVALUATION_INTERVAL: "60s"
