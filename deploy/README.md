@@ -1,40 +1,78 @@
 # Infrastructure & Deployment (`deploy/`)
 
 ## Overview
-The `deploy/` directory houses all Infrastructure-as-Code (IaC), containerization configurations, and orchestration manifests necessary to provision, deploy, and scale Obsygnal-Pulse in a production environment.
+The `deploy/` directory houses all Infrastructure-as-Code (IaC), containerization definitions, Helm charts, and orchestration manifests necessary to provision, deploy, and scale Obsygnal-Pulse across cloud environments (GKE, EKS, AKS) and bare-metal GPU clusters.
 
-## Responsibilities
-- Defining repeatable, deterministic environments.
-- Packaging Go binaries and React static assets into lightweight, secure Docker images.
-- Providing local development orchestration via Docker Compose.
-- Defining Kubernetes manifests for production scheduling, auto-scaling, and networking.
+---
 
-## Architecture Role
-This folder does not contain application code. It defines the physical (or virtual) topology in which the application runs. It orchestrates the API Server, Workers, Redis, and ClickHouse.
+## Directory Structure
 
-## Key Components
-- `docker/`: Contains optimized, multi-stage `Dockerfiles` for building lightweight Alpine-based container images for all services.
-- `docker-compose.yml`: The local development stack, spinning up ClickHouse, Redis, the API, the Worker, and the Simulator via a single command (`make docker-up`).
-- `k8s/`: (WIP) Kubernetes manifests including Deployments, Services, ConfigMaps, and Secrets.
-- `terraform/`: (WIP) HCL files for provisioning managed cloud infrastructure (e.g., AWS ElastiCache for Redis, managed ClickHouse, EKS clusters).
+```
+deploy/
+├── helm/                     # Production-grade Helm charts
+│   └── obsygnal-pulse/       # Main chart with API Server, Worker, Agent DaemonSet, Web UI
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│           ├── deployment-api.yaml
+│           ├── deployment-worker.yaml
+│           ├── deployment-web.yaml
+│           ├── daemonset.yaml        # GPU node collector with NVIDIA host mounts
+│           ├── ingress.yaml
+│           └── secrets.yaml
+├── k8s/                      # Kustomize base and environment overlays
+│   ├── base/
+│   └── overlays/
+│       ├── staging/
+│       └── production/
+├── terraform/                # Terraform cloud provisioning modules
+│   └── gke/                  # Google Kubernetes Engine with NVIDIA GPU node pools
+└── README.md
+```
 
-## Dependencies
-- Requires Docker, Docker Compose, Kubernetes (kubectl), and Terraform.
+---
 
-## Operational Considerations
-- **Resource Limits**: Production deployments must strictly define CPU and Memory requests/limits to prevent noisy neighbor issues on shared clusters.
-- **Scaling**: 
-  - API servers should use Horizontal Pod Autoscalers (HPA) scaling on CPU or HTTP request latency.
-  - Workers should use KEDA (Kubernetes Event-driven Autoscaling) scaled based on Redis queue depth.
-- **State Management**: While stateless API/Worker pods can be freely killed, ClickHouse and Redis are stateful. Production deployments should utilize managed services rather than raw StatefulSets where possible.
+## Key Deployment Targets
 
-## Security Considerations
-- **Images**: Dockerfiles must use minimal distroless or Alpine bases. Run all containers as non-root users.
-- **Secrets**: Passwords and JWT secrets must be injected into the container environment via Kubernetes Secrets or external secret managers (e.g., HashiCorp Vault), never baked into images.
+### 1. Production Helm Chart (`deploy/helm/obsygnal-pulse`)
+The official Helm chart installs all Obsygnal-Pulse components onto Kubernetes:
+- **API Control Plane**: Stateless Deployment with Horizontal Pod Autoscaling (HPA) and liveness/readiness probes.
+- **Background Worker**: Asynchronous detection and recommendation worker.
+- **React Web UI**: Static frontend served via hardened, non-root Nginx container.
+- **Edge Telemetry DaemonSet**: Scheduled exclusively on GPU-accelerated nodes (`accelerator: nvidia-gpu` nodeSelector) with host access to `/dev/nvidia*`, `/sys`, and `/proc`.
 
-## Testing
-- **Local Validation**: Infrastructure configs are validated locally using `make docker-up` and running E2E integration tests against the resulting stack.
+#### Installation:
+```bash
+helm upgrade --install obsygnal-pulse deploy/helm/obsygnal-pulse \
+  --namespace obsygnal-system \
+  --create-namespace \
+  --set global.environment="production" \
+  --set secrets.jwtSecret="YOUR_PRODUCTION_JWT_SECRET_32_BYTES" \
+  --set secrets.clickhousePassword="YOUR_CLICKHOUSE_PASSWORD" \
+  --set config.clickhouseHost="clickhouse.obsygnal-system.svc.cluster.local" \
+  --set config.redisHost="redis.obsygnal-system.svc.cluster.local"
+```
 
-## Future Improvements
-- Add Helm charts (`deploy/helm/`) to parameterize Kubernetes deployments across `dev`, `staging`, and `prod` environments.
-- Integrate container vulnerability scanning (e.g., Trivy) into the CI pipeline.
+### 2. Kustomize Overlays (`deploy/k8s/`)
+For GitOps pipelines (ArgoCD, Flux) without Helm:
+- **Staging**: `kubectl apply -k deploy/k8s/overlays/staging`
+- **Production**: `kubectl apply -k deploy/k8s/overlays/production`
+
+### 3. Terraform Cloud Modules (`deploy/terraform/`)
+- **GKE Module (`deploy/terraform/gke/`)**: Automates creation of a VPC, GKE Standard cluster, and an autoscaling NVIDIA H100 / A100 GPU node pool with NVIDIA GPU Operator drivers pre-installed.
+
+### 4. Local Development Stack (`docker-compose.yml`)
+Spins up ClickHouse, Redis, NATS JetStream, Prometheus, and Grafana:
+```bash
+make docker-up
+```
+
+---
+
+## Container Security & Hardening
+
+All container images are built using multi-stage builds in the root [Dockerfile](../Dockerfile):
+- **Minimal Attack Surface**: Uses Alpine / Distroless runtime images.
+- **Non-Root Execution**: API Server (`UID 1000`), Worker (`UID 1000`), and Web UI (`UID 101`) execute as unprivileged users.
+- **Automated Vulnerability Scanning**: Trivy scans images on every commit in the CI/CD pipeline.
+- **Zero Hardcoded Secrets**: All sensitive tokens and secrets are injected exclusively via Kubernetes Secrets or environment variables.

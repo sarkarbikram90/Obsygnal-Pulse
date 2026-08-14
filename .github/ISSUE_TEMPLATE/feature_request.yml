@@ -1,0 +1,56 @@
+name: 💡 Feature / Enhancement Request
+description: Propose a new feature, detection rule, hardware telemetry provider, or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a feature or improvement for Obsygnal-Pulse!
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      options:
+        - "New Detection Rule (e.g. InfiniBand congestion, Thermal throttling)"
+        - "Hardware Telemetry / Accelerator (AMD ROCm, Intel Gaudi, TPU)"
+        - "Remediation & Automation (Kubernetes, Slurm, Ray)"
+        - "Web Dashboard & Visualizations"
+        - "Python / ML Framework SDK (PyTorch, Megatron, vLLM)"
+        - "Cloud / Storage Adapter (ClickHouse, BigQuery, Snowflake, S3)"
+        - "Developer Ergonomics & CLI"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of the problem or limitation.
+      placeholder: "When running large-scale distributed training on 1024 GPUs, we noticed that..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / Feature
+      description: Describe the solution you'd like to see implemented.
+      placeholder: "Add an Inefficiency rule that detects NCCL ring deadlock..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've considered.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: "I would be willing to submit a Pull Request for this feature!"

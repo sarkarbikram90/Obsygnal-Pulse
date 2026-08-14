@@ -91,6 +91,75 @@ export interface Recommendation {
   expires_at: string
 }
 
+export interface GPUSummary {
+  gpu_id: string
+  index: number
+  model: string
+  utilization: number
+  memory_used_gb: number
+  memory_total_gb: number
+  temperature: number
+  power_watts: number
+  status: 'active' | 'idle' | 'hot' | 'fault'
+  xid_error?: number
+}
+
+export interface NodeDetail {
+  node_id: string
+  status: 'ready' | 'degraded' | 'cordoned'
+  gpu_model: string
+  gpu_count: number
+  cpu_usage: number
+  memory_gb: number
+  driver_version: string
+  cuda_version: string
+  ip_address: string
+  cluster_id: string
+  last_heartbeat: string
+  gpus: GPUSummary[]
+}
+
+export interface JobDetail {
+  id: string
+  name: string
+  namespace: string
+  framework: string
+  gpu_count: number
+  status: 'running' | 'cpu_bottleneck' | 'stalled' | 'completed' | 'failed'
+  avg_gpu_util: number
+  avg_vram_util: number
+  vram_allocated_gb: number
+  vram_reserved_gb: number
+  started_at: string
+  duration: string
+  estimated_cost: string
+  cluster_id: string
+  node_ids: string[]
+}
+
+export interface AlertDetail {
+  id: string
+  type: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  title: string
+  message: string
+  cluster_id: string
+  node_id?: string
+  gpu_id?: string
+  fired_at: string
+  status: 'active' | 'resolved' | 'acknowledged'
+  channels: string[]
+}
+
+export interface AlertChannelConfig {
+  slack_enabled: boolean
+  slack_webhook_url: string
+  pagerduty_enabled: boolean
+  pagerduty_service_key: string
+  email_enabled: boolean
+  email_recipients: string
+}
+
 export interface User {
   id: string
   email: string

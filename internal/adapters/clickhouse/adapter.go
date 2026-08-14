@@ -47,7 +47,11 @@ func NewAdapter(cfg config.ClickHouseConfig, log *logger.Logger) (*Adapter, erro
 		return nil, fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
-	if err := conn.Ping(context.Background()); err != nil {
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer pingCancel()
+
+	if err := conn.Ping(pingCtx); err != nil {
+		_ = conn.Close()
 		return nil, fmt.Errorf("failed to ping ClickHouse: %w", err)
 	}
 

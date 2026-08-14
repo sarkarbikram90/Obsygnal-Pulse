@@ -1,17 +1,27 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '../../components/ui/card'
-import { Clock, Server, Activity, ShieldAlert, Cpu } from 'lucide-react'
+import { Clock, Server, Activity, ShieldAlert, Cpu, Search, AlertTriangle } from 'lucide-react'
 import { api } from '../../api/client'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function Inefficiencies() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [severityFilter, setSeverityFilter] = useState<string>('all')
+
   const { data: inefficiencies, isLoading, isError } = useQuery({
     queryKey: ['inefficiencies', 'sim-cluster-01'],
     queryFn: () => api.getInefficiencies('sim-cluster-01'),
     retry: false,
   })
 
-  const displayData = inefficiencies || []
+  const displayData = (inefficiencies || []).filter((ineff) => {
+    const matchesSearch = ineff.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ineff.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (ineff.node_id && ineff.node_id.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesSeverity = severityFilter === 'all' || ineff.severity === severityFilter
+    return matchesSearch && matchesSeverity
+  })
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -32,8 +42,8 @@ export default function Inefficiencies() {
         return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-rose-500 text-slate-950"><ShieldAlert className="w-3 h-3" /> Hardware Fault</span>
       case 'cuda_memory_fragmentation':
         return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/40"><Cpu className="w-3 h-3" /> PyTorch VRAM Frag</span>
-      case 'kv_cache_saturation':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/40">vLLM KV Cache</span>
+      case 'cpu_starvation':
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/40"><AlertTriangle className="w-3 h-3" /> CPU Starvation</span>
       default:
         return null
     }
@@ -48,6 +58,36 @@ export default function Inefficiencies() {
         <p className="text-slate-400">Real-time hardware fault indicators, PyTorch memory fragmentation, and distributed communication skew.</p>
       </div>
 
+      {/* Search & Severity Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 border border-slate-800 rounded-2xl">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search bottleneck, rule, or node..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500/50"
+          />
+        </div>
+
+        <div className="flex gap-1.5 w-full sm:w-auto">
+          {['all', 'critical', 'high', 'medium'].map((sev) => (
+            <button
+              key={sev}
+              onClick={() => setSeverityFilter(sev)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl uppercase transition ${
+                severityFilter === sev
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              {sev}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -56,6 +96,10 @@ export default function Inefficiencies() {
         ) : isError && !inefficiencies ? (
           <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
             Failed to load inefficiencies. Ensure the backend server is reachable.
+          </div>
+        ) : displayData.length === 0 ? (
+          <div className="p-12 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-900/30 text-slate-400 text-sm">
+            No active bottlenecks found matching filter criteria.
           </div>
         ) : (
           displayData.map((ineff) => (

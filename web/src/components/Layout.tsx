@@ -1,27 +1,49 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Activity, LayoutDashboard, Lightbulb, AlertTriangle, HardDrive, Cpu, Bell, Key, CreditCard, UserCheck, TrendingUp } from 'lucide-react'
+import {
+  Activity,
+  LayoutDashboard,
+  Lightbulb,
+  AlertTriangle,
+  HardDrive,
+  Cpu,
+  Bell,
+  Key,
+  CreditCard,
+  UserCheck,
+  TrendingUp,
+  RefreshCw,
+  LogOut
+} from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { AuthModal } from './AuthModal'
 import { APIKeyManager } from './APIKeyManager'
 
 const navItems = [
-  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Cluster Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   { name: 'Inefficiencies', href: '/inefficiencies', icon: AlertTriangle },
   { name: 'Executive ROI Simulator', href: '/simulator', icon: TrendingUp },
-  { name: 'Alerts', href: '/alerts', icon: Bell },
-  { name: 'Nodes', href: '/nodes', icon: HardDrive },
-  { name: 'Jobs', href: '/jobs', icon: Cpu },
+  { name: 'Compute Nodes', href: '/nodes', icon: HardDrive },
+  { name: 'ML Workloads', href: '/jobs', icon: Cpu },
+  { name: 'Incidents & Alerts', href: '/alerts', icon: Bell },
   { name: 'Billing & Metering', href: '/billing', icon: CreditCard },
 ]
 
 export function Layout() {
   const location = useLocation()
-  const { user, org, isAuthenticated } = useAuth()
+  const { user, org, isAuthenticated, logout } = useAuth()
+  const toast = useToast()
   const [authOpen, setAuthOpen] = useState(false)
   const [apiKeyOpen, setApiKeyOpen] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState<'5s' | '15s' | '30s' | 'off'>('5s')
+
+  const handleLogout = () => {
+    logout()
+    toast.info('Signed Out', 'You have been signed out of your workspace session.')
+  }
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans selection:bg-orange-500/30">
@@ -38,33 +60,35 @@ export function Layout() {
         <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-950/40">
           <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Active Workspace</div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs font-bold text-slate-200 truncate">{org?.name || 'Obsygnal Labs'}</span>
+            <span className="text-xs font-bold text-slate-200 truncate">{org?.name || 'Obsygnal AI Labs'}</span>
             <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-orange-500/10 text-orange-400 border border-orange-500/30 rounded-full">
-              {org?.tier || 'Pro'}
+              {org?.tier || 'Growth Pro'}
             </span>
           </div>
         </div>
-        
+
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname.startsWith(item.href)
-            
+
             return (
               <Link
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                  isActive 
-                    ? "bg-gradient-to-r from-orange-500/15 to-rose-500/10 text-orange-400 border border-orange-500/20 shadow-sm" 
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-100"
+                  'group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+                  isActive
+                    ? 'bg-gradient-to-r from-orange-500/15 to-rose-500/10 text-orange-400 border border-orange-500/20 shadow-sm'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
                 )}
               >
-                <Icon className={cn(
-                  "mr-3 flex-shrink-0 h-5 w-5 transition-colors",
-                  isActive ? "text-orange-400" : "text-slate-500 group-hover:text-slate-300"
-                )} />
+                <Icon
+                  className={cn(
+                    'mr-3 flex-shrink-0 h-5 w-5 transition-colors',
+                    isActive ? 'text-orange-400' : 'text-slate-500 group-hover:text-slate-300'
+                  )}
+                />
                 {item.name}
               </Link>
             )
@@ -88,10 +112,31 @@ export function Layout() {
         {/* Top Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md z-10 sticky top-0">
           <div className="flex items-center gap-4">
+            {/* Live Waste Ticker */}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
               <span className="text-slate-300 font-medium">Monthly Wasted Compute:</span>
               <span className="font-extrabold text-rose-400">$6,820.00 / mo</span>
+            </div>
+
+            {/* Refresh Controller */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-950/60 border border-slate-800 rounded-xl text-xs text-slate-400">
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${refreshInterval !== 'off' ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
+              <span>Poll:</span>
+              <select
+                value={refreshInterval}
+                onChange={(e) => {
+                  const val = e.target.value as '5s' | '15s' | '30s' | 'off'
+                  setRefreshInterval(val)
+                  toast.info('Telemetry Polling Interval Updated', `Stream rate set to ${val === 'off' ? 'Paused' : val}.`)
+                }}
+                className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
+              >
+                <option value="5s" className="bg-slate-900">5s (Live)</option>
+                <option value="15s" className="bg-slate-900">15s</option>
+                <option value="30s" className="bg-slate-900">30s</option>
+                <option value="off" className="bg-slate-900">Paused</option>
+              </select>
             </div>
           </div>
 
@@ -103,8 +148,15 @@ export function Layout() {
                   <div className="text-[10px] text-slate-400">{user?.email}</div>
                 </div>
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-orange-500/20 ring-2 ring-slate-900">
-                  {user?.display_name.substring(0, 2).toUpperCase() || 'AI'}
+                  {user?.display_name?.substring(0, 2).toUpperCase() || 'AI'}
                 </div>
+                <button
+                  onClick={handleLogout}
+                  title="Sign Out"
+                  className="p-2 text-slate-400 hover:text-rose-400 transition rounded-lg hover:bg-slate-800/60"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             ) : (
               <button

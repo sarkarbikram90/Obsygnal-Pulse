@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
-import { Lightbulb, DollarSign, CheckCircle2, Zap, Copy } from 'lucide-react'
+import { Lightbulb, DollarSign, CheckCircle2, Zap, Copy, Search, ShieldCheck } from 'lucide-react'
 import { api } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 import type { Recommendation } from '../../types'
 
 export default function Recommendations() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [appliedIds, setAppliedIds] = useState<string[]>([])
 
   const { data: recommendations, isLoading } = useQuery({
@@ -21,18 +23,28 @@ export default function Recommendations() {
     mutationFn: (id: string) => api.applyRecommendation(id),
     onSuccess: (_, id) => {
       setAppliedIds((prev) => [...prev, id])
+      toast.success(
+        'Auto-Remediation Dispatched',
+        'Kubernetes repair manifest successfully applied. Workload downscaled.'
+      )
       queryClient.invalidateQueries({ queryKey: ['recommendations'] })
     },
   })
 
   const dismissMutation = useMutation({
     mutationFn: (id: string) => api.dismissRecommendation(id, 'Operator dismissed'),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      toast.info('Recommendation Dismissed', `Recommendation ${id} dismissed.`)
       queryClient.invalidateQueries({ queryKey: ['recommendations'] })
     },
   })
 
-  const displayRecs = (recommendations || []).filter((r) => !appliedIds.includes(r.id))
+  const displayRecs = (recommendations || []).filter(
+    (r) =>
+      !appliedIds.includes(r.id) &&
+      (r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
 
   const totalMonthlySavings = displayRecs.reduce(
     (acc, r) => acc + (r.estimated_savings?.cost_per_month_usd || 0),
@@ -52,6 +64,9 @@ spec:
     spec:
       containers:
       - name: trainer
+        env:
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "expandable_segments:True"
         resources:
           limits:
             nvidia.com/gpu: "1" # Scaled down from over-provisioned allocation
@@ -62,8 +77,7 @@ spec:
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    toast.success('YAML Manifest Copied', 'Kubernetes deployment patch copied to clipboard.')
   }
 
   return (
@@ -88,6 +102,18 @@ spec:
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input
+          type="text"
+          placeholder="Filter recommendations..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500/50"
+        />
       </div>
 
       <div className="grid gap-6">
@@ -170,7 +196,7 @@ spec:
 
       {/* Auto-Remediation K8s Fix Modal */}
       {selectedRec && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100">
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
               <div>
@@ -186,14 +212,12 @@ spec:
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-300">Generated Kubernetes Manifest (YAML)</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => copyToClipboard(generateKubernetesFix(selectedRec))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition"
-                  >
-                    <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied!' : 'Copy YAML'}
-                  </button>
-                </div>
+                <button
+                  onClick={() => copyToClipboard(generateKubernetesFix(selectedRec))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Copy YAML
+                </button>
               </div>
 
               <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-emerald-400 overflow-x-auto">
@@ -209,9 +233,9 @@ spec:
                     applyMutation.mutate(selectedRec.id)
                     setSelectedRec(null)
                   }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition"
+                  className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center gap-1.5"
                 >
-                  Confirm & Dispatch Fix
+                  <ShieldCheck className="w-4 h-4" /> Confirm & Dispatch Fix
                 </button>
               </div>
             </div>

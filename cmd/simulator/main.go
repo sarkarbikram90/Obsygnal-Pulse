@@ -66,26 +66,34 @@ func main() {
 		}
 	}()
 
+	var publisher func(ctx context.Context, batch *metrics.MetricBatch) error
 	natsAdapter, err := nats.NewAdapter(cfg.Nats, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect to NATS JetStream")
-	}
-	defer natsAdapter.Close()
+	if err == nil {
+		defer natsAdapter.Close()
+		publisher = func(ctx context.Context, batch *metrics.MetricBatch) error {
+			if err := natsAdapter.PublishBatch(ctx, batch); err != nil {
+				log.Error().Err(err).Msg("failed to publish telemetry to NATS")
+				return err
+			}
 
-	// Publish to NATS JetStream
-	publisher := func(ctx context.Context, batch *metrics.MetricBatch) error {
-		if err := natsAdapter.PublishBatch(ctx, batch); err != nil {
-			log.Error().Err(err).Msg("failed to publish telemetry to NATS")
-			return err
+			log.Info().
+				Int("gpu_metrics", len(batch.GPUMetrics)).
+				Int("node_metrics", len(batch.NodeMetrics)).
+				Str("source", batch.Source).
+				Msg("telemetry batch published to NATS")
+
+			return nil
 		}
-
-		log.Info().
-			Int("gpu_metrics", len(batch.GPUMetrics)).
-			Int("node_metrics", len(batch.NodeMetrics)).
-			Str("source", batch.Source).
-			Msg("telemetry batch published to NATS")
-
-		return nil
+	} else {
+		log.Warn().Err(err).Msg("NATS unavailable — simulator continuing in standalone mode (serving /metrics/latest)")
+		publisher = func(ctx context.Context, batch *metrics.MetricBatch) error {
+			log.Info().
+				Int("gpu_metrics", len(batch.GPUMetrics)).
+				Int("node_metrics", len(batch.NodeMetrics)).
+				Str("source", batch.Source).
+				Msg("generated synthetic telemetry tick (accessible at :8085/metrics/latest)")
+			return nil
+		}
 	}
 
 	// Run simulator in background

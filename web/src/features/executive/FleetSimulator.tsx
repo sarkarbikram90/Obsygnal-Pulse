@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { Card } from '../../components/ui/card'
-import { Cpu, Zap, Download } from 'lucide-react'
+import { Cpu, Zap, Download, Sparkles, DollarSign } from 'lucide-react'
+import { useToast } from '../../context/ToastContext'
 
 export const FleetSimulator: React.FC = () => {
+  const toast = useToast()
   const [gpuCount, setGpuCount] = useState<number>(64)
   const [gpuModel, setGpuModel] = useState<string>('H100')
   const [idlePercent, setIdlePercent] = useState<number>(25)
@@ -23,31 +25,70 @@ export const FleetSimulator: React.FC = () => {
   const recoverableSavings = wastedMonthly * 0.85 // 85% recovery rate
   const annualSavings = recoverableSavings * 12
 
+  const handleExportBrief = () => {
+    const brief = {
+      project: "Obsygnal-Pulse AI Infrastructure Financial Brief",
+      generated_at: new Date().toISOString(),
+      topology: {
+        gpu_model: gpuModel,
+        gpu_count: gpuCount,
+        hourly_rate_usd: rate,
+        estimated_idle_waste_percent: idlePercent,
+      },
+      financial_model: {
+        total_monthly_spend_usd: monthlySpend,
+        wasted_monthly_spend_usd: wastedMonthly,
+        annual_capital_wasted_usd: wastedMonthly * 12,
+        annual_projected_net_savings_usd: annualSavings,
+        estimated_net_roi_multiplier: "5.8x",
+        projected_throughput_increase: "3.2x",
+      },
+    }
+
+    const blob = new Blob([JSON.stringify(brief, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Obsygnal_Executive_ROI_Brief_${gpuModel}_${gpuCount}GPUs.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast.success(
+      'Executive Financial Brief Downloaded',
+      `Exported ROI model for ${gpuCount}x ${gpuModel} fleet ($${Math.round(annualSavings).toLocaleString()}/yr savings).`
+    )
+  }
+
   return (
-    <div className="space-y-8 p-2 text-slate-100 animate-in fade-in duration-500">
+    <div className="space-y-8 text-slate-100 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="px-3 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/30 text-xs font-bold rounded-full uppercase tracking-wider">
-            Investor & VP Infrastructure Tool
+            Executive & VP Infrastructure Tool
           </span>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-orange-400 via-rose-400 to-amber-300 bg-clip-text text-transparent mt-2">
-            AI Fleet ROI & Savings Simulator
+            AI Fleet ROI & Capital Savings Simulator
           </h1>
           <p className="text-sm text-slate-400 mt-1">Model custom GPU topologies, compute instant annual cost recovery, and project unit economics.</p>
         </div>
         <button
-          onClick={() => alert('Executive PDF Investment Brief downloaded.')}
+          onClick={handleExportBrief}
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition"
         >
-          <Download className="w-4 h-4" /> Export Executive PDF Brief
+          <Download className="w-4 h-4" /> Export Executive Financial Brief
         </button>
       </div>
 
       {/* Simulator Inputs & Output Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Controls Card */}
-        <Card className="lg:col-span-1 bg-slate-900 border-slate-800 p-6 rounded-2xl space-y-5">
-          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Cluster Configuration</h3>
+        <Card className="lg:col-span-1 bg-slate-900 border-slate-800 p-6 rounded-2xl space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Cluster Configuration</h3>
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-2">GPU Model Selection</label>
@@ -69,9 +110,9 @@ export const FleetSimulator: React.FC = () => {
           </div>
 
           <div>
-            <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1">
+            <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
               <span>GPU Fleet Size</span>
-              <span className="text-orange-400 font-bold">{gpuCount} GPUs</span>
+              <span className="text-orange-400 font-bold">{gpuCount} Sockets</span>
             </div>
             <input
               type="range"
@@ -82,10 +123,15 @@ export const FleetSimulator: React.FC = () => {
               onChange={(e) => setGpuCount(Number(e.target.value))}
               className="w-full accent-orange-500 bg-slate-950 rounded-lg cursor-pointer"
             />
+            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>8 (Single Node)</span>
+              <span>256</span>
+              <span>1024 (Cluster)</span>
+            </div>
           </div>
 
           <div>
-            <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1">
+            <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
               <span>Estimated Compute Idle / Waste %</span>
               <span className="text-rose-400 font-bold">{idlePercent}%</span>
             </div>
@@ -98,6 +144,11 @@ export const FleetSimulator: React.FC = () => {
               onChange={(e) => setIdlePercent(Number(e.target.value))}
               className="w-full accent-rose-500 bg-slate-950 rounded-lg cursor-pointer"
             />
+            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>5% (Lean)</span>
+              <span>25% (Industry Avg)</span>
+              <span>60% (Severe)</span>
+            </div>
           </div>
         </Card>
 
@@ -110,7 +161,7 @@ export const FleetSimulator: React.FC = () => {
               <p className="text-xs text-slate-400">Based on {gpuCount}x {gpuModel} running {hoursPerDay}h/day</p>
             </div>
             <div className="pt-4 border-t border-slate-800 flex items-center text-xs text-slate-400 gap-1.5">
-              <Cpu className="w-4 h-4 text-orange-400" /> Monitored Rate: ${rate}/gpu-hr
+              <Cpu className="w-4 h-4 text-orange-400" /> Multi-Cloud Benchmark Rate: ${rate}/gpu-hr
             </div>
           </Card>
 
@@ -121,16 +172,21 @@ export const FleetSimulator: React.FC = () => {
               <p className="text-xs text-slate-400">Capital burned on idle VRAM & stalled loops</p>
             </div>
             <div className="pt-4 border-t border-slate-800/80 flex items-center text-xs text-rose-300 gap-1.5">
-              <Zap className="w-4 h-4 text-rose-400" /> {idlePercent}% fleet underutilization
+              <Zap className="w-4 h-4 text-rose-400" /> {idlePercent}% fleet underutilization rate
             </div>
           </Card>
 
           <Card className="sm:col-span-2 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/40 p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div>
-              <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-400">Projected Obsygnal Annual Net Recovery</span>
-              <div className="text-4xl font-black text-emerald-300 mt-1">${annualSavings.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-emerald-500">/ year</span></div>
-              <p className="text-xs text-slate-300 mt-2">
-                Delivers an estimated <span className="text-emerald-400 font-bold">5.8x Net ROI</span> on SaaS license fee while increasing PyTorch training throughput by 3.2x.
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-400" />
+                <span className="text-xs uppercase tracking-wider font-extrabold text-emerald-400">Projected Obsygnal Annual Net Recovery</span>
+              </div>
+              <div className="text-4xl font-black text-emerald-300">
+                ${annualSavings.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-emerald-500">/ year</span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Delivers an estimated <span className="text-emerald-400 font-bold">5.8x Net ROI</span> on platform license fee while increasing PyTorch training throughput by <span className="text-emerald-400 font-bold">3.2x</span>.
               </p>
             </div>
           </Card>

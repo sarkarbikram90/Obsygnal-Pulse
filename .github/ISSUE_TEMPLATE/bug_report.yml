@@ -1,0 +1,86 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in Obsygnal-Pulse
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much detail as possible so we can diagnose and resolve it quickly.
+
+  - type: input
+    id: version
+    attributes:
+      label: Obsygnal-Pulse Version / Commit Hash
+      description: What version or git commit of Obsygnal-Pulse are you running?
+      placeholder: "e.g., v1.0.0 or commit abc1234"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - "API Server (cmd/api-server)"
+        - "Edge Telemetry Collector (cmd/collector)"
+        - "Background Worker (cmd/worker)"
+        - "Telemetry Simulator (cmd/simulator)"
+        - "Detection Engine (internal/services/detection)"
+        - "Recommendation Engine (internal/services/recommendation)"
+        - "ClickHouse / Redis / Storage Adapters"
+        - "Web Dashboard (web/)"
+        - "Python SDK (sdk/python/)"
+        - "Helm Chart / Kubernetes Deployments"
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "When running the detection engine on H100 nodes..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed step-by-step instructions to reproduce the behavior.
+      placeholder: |
+        1. Start API server with 'go run ./cmd/api-server/main.go'
+        2. Ingest payload with ...
+        3. Observe error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack Traces
+      description: Paste relevant logs or stack traces here.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Details about your deployment environment (OS, GPU Models, NVIDIA Driver, CUDA version, Kubernetes version).
+      placeholder: |
+        - OS: Ubuntu 22.04 / Windows 11
+        - GPU: 8x NVIDIA H100 SXM5 80GB
+        - Driver Version: 535.129.03
+        - Go Version: 1.24
+        - Kubernetes Version: v1.29

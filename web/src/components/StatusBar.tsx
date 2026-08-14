@@ -1,53 +1,41 @@
-import type { IngestionStats } from '../types/api';
+import { AlertCircle } from 'lucide-react'
 
 interface Props {
-  lastUpdate: Date;
-  stats: IngestionStats | null;
-  error: string | null;
+  lastUpdate: Date
+  stats?: {
+    total_received: number
+    total_dropped: number
+  } | null
+  error?: string | null
 }
 
 export function StatusBar({ lastUpdate, stats, error }: Props) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 12 }}>
+    <div className="flex items-center gap-4 text-xs text-slate-400 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
       {error ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-rose)' }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--accent-rose)',
-            animation: 'pulse-glow 2s infinite',
-          }} />
-          <span>API Disconnected</span>
+        <div className="flex items-center gap-1.5 text-rose-400 font-medium">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span>Offline Fallback Active</span>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-emerald)' }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--accent-emerald)',
-          }} />
-          <span>Connected</span>
+        <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Telemetry Stream Active</span>
         </div>
       )}
 
       {stats && (
-        <>
-          <div style={{ color: 'var(--text-muted)' }}>
-            Ingested: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {stats.total_received.toLocaleString()}
-            </span>
-          </div>
+        <div className="hidden sm:flex items-center gap-3 border-l border-slate-800 pl-3">
+          <span>Ingested: <strong className="text-slate-200">{stats.total_received.toLocaleString()}</strong></span>
           {stats.total_dropped > 0 && (
-            <div style={{ color: 'var(--accent-amber)' }}>
-              Dropped: {stats.total_dropped}
-            </div>
+            <span className="text-amber-400">Dropped: {stats.total_dropped}</span>
           )}
-        </>
+        </div>
       )}
 
-      <div style={{ color: 'var(--text-muted)' }}>
-        Updated: <span style={{ color: 'var(--text-secondary)' }}>
-          {lastUpdate.toLocaleTimeString()}
-        </span>
+      <div className="border-l border-slate-800 pl-3 text-[11px] text-slate-500">
+        Updated: {lastUpdate.toLocaleTimeString()}
       </div>
     </div>
-  );
+  )
 }

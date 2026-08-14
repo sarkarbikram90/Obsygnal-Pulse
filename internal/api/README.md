@@ -1,51 +1,63 @@
 # API Layer (`internal/api/`)
 
 ## Overview
-The `api` directory is the primary entry point for HTTP traffic (Primary Adapter). It manages the REST API surface for the frontend dashboard and programmatic data ingestion.
+The `api` package acts as the Primary Adapter (driving adapter) in Obsygnal-Pulse's Hexagonal Architecture. It manages the REST API interface, routes incoming HTTP requests, enforces authentication/RBAC, and serializes domain models into JSON responses.
 
-## Responsibilities
-- Parsing and validating incoming HTTP requests and JSON payloads.
-- Routing URLs to the correct handler functions.
-- Managing HTTP middleware (Authentication, Rate Limiting, CORS, Security Headers).
-- Translating core domain errors into appropriate HTTP status codes (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error).
-- Serializing domain models into JSON responses.
+---
 
-## Architecture Role
-This is a Primary Adapter in the Hexagonal Architecture. It drives the application by invoking methods on the `internal/services/` layer. It must NEVER contain business logic or make direct database queries.
+## Directory Structure
 
-## Key Components
-- `handlers/`: Contains the actual HTTP handler functions. These are kept extremely thin.
-- `routes/`: Centralizes the URL topology and dependency injection wiring for the HTTP server.
-- `middleware/`: Reusable HTTP interception logic (e.g., `ratelimit.go`, `auth.go`, `logger.go`).
-- `dto/`: Data Transfer Objects. Defines the exact JSON shapes expected in requests and returned in responses.
-
-## Dependencies
-- **Internal**: `internal/services`, `internal/domain`, `internal/pkg/logger`.
-- **External**: `github.com/gin-gonic/gin` (HTTP Framework).
-
-## Data Flow
-```text
-HTTP Request → Middleware (Auth, RateLimit) → Routes → Handler (Parsing) → Service → Handler (Response) → HTTP Response
+```
+internal/api/
+├── dto/            # Data Transfer Objects (request/response schemas with validation tags)
+├── handlers/       # HTTP handler functions (thin orchestration calling services)
+│   ├── handlers.go       # Core telemetry, inefficiencies, and recommendations handlers
+│   ├── saas_handlers.go  # Multi-tenant auth, API keys, billing usage, audit log handlers
+│   └── prometheus.go     # Operational /metrics endpoint handler
+├── middleware/     # Reusable HTTP interception logic
+│   ├── auth.go           # JWT token validation, TenantScope, and RequirePermission RBAC
+│   ├── ratelimit.go      # Sliding-window Redis rate limiter with in-memory fallback
+│   └── middleware.go     # CORS, RequestID tracing, Logger, and Panic Recovery
+└── routes/         # Central route registration and dependency injection wiring
 ```
 
-## Operational Considerations
-- **Scaling**: Handlers are stateless. Throughput is primarily limited by the backend infrastructure (ClickHouse/Redis) and network bandwidth.
-- **Reliability**: Panic recovery middleware ensures that a panic in one request does not crash the entire server process.
+---
 
-## Security Considerations
-- **Authentication**: JWT Bearer token validation is enforced via `auth.go`.
-- **Rate Limiting**: Sliding window rate limiting via Redis (`ratelimit.go`) protects against L7 DDoS and noisy neighbors.
-- **Payload Validation**: All incoming requests must be strictly validated against struct tags in the `dto` package to prevent injection attacks.
+## Request Lifecycle
 
-## Observability
-- **Metrics**: Endpoints should expose `http_request_duration_seconds` to Prometheus.
-- **Logging**: The `logger.go` middleware logs every request's latency, status code, and IP address.
-- **Tracing**: Request IDs are generated for tracing logs across the request lifecycle.
+```text
+HTTP Request
+     │
+     ▼
+[Middleware: Panic Recovery & Tracing]
+     │
+     ▼
+[Middleware: CORS & Security Headers]
+     │
+     ▼
+[Middleware: Redis Rate Limiter]
+     │
+     ▼
+[Middleware: JWT / Machine API Key Auth & RBAC]
+     │
+     ▼
+[Handler: Parse & Validate DTO Request]
+     │
+     ▼
+[Service Layer: Business Orchestration]
+     │
+     ▼
+[Handler: Format DTO Response & Status Code]
+     │
+     ▼
+HTTP Response
+```
 
-## Testing
-- **Unit Tests**: Handlers are tested using `httptest.NewRecorder()` and mocked services.
-- **API Contracts**: Tests must verify the exact JSON shape to ensure backward compatibility.
+---
 
-## Future Improvements
-- Implement OpenAPI/Swagger generation directly from the Go code to keep API documentation in sync.
-- Migrate from simple JWT token verification to a full JWKS (JSON Web Key Set) implementation for integration with external Identity Providers (OIDC).
+## Testing Handlers
+
+Handlers are tested using `net/http/httptest` and memory repositories without requiring running external servers:
+```bash
+go test -v ./internal/api/...
+```

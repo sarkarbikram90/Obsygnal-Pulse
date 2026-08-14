@@ -1,48 +1,79 @@
 # Frontend Interface (`web/`)
 
 ## Overview
-The `web/` directory contains the Single Page Application (SPA) that serves as the user-facing dashboard for Obsygnal-Pulse. It visualizes GPU telemetry, highlights detected inefficiencies, and presents actionable optimization recommendations.
+The `web/` directory contains the Single Page Application (SPA) dashboard for **Obsygnal-Pulse**. Built with **React 19**, **TypeScript**, and **TailwindCSS v4**, it provides AI infrastructure teams with real-time GPU cluster visibility, bottleneck triage, ROI cost calculations, and 1-click remediation workflows.
 
-## Responsibilities
-- Rendering real-time dashboards for cluster health and GPU utilization.
-- Providing an interface for users to review, apply, or dismiss infrastructure optimization recommendations.
-- Managing client-side state, routing, and API communication.
+---
 
-## Architecture Role
-The React application acts as the primary client interacting with the backend REST API (`api-server`). It is entirely decoupled from the backend logic and operates strictly over HTTP JSON payloads.
+## Tech Stack & Dependencies
 
-## Key Components
-- `src/components/`: Reusable, atomic UI components (Buttons, Cards, Modals).
-- `src/features/`: Domain-specific components (e.g., `RecommendationsList`, `ClusterMap`).
-- `src/hooks/`: Custom React hooks for data fetching (e.g., `useMetrics`, `useRecommendations`).
-- `src/services/`: API client wrappers orchestrating `fetch` calls to the Go backend.
-- `src/pages/`: Top-level route components mapped to specific URLs.
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | React 19.x & React DOM | Declarative component UI |
+| **Language** | TypeScript 5.8+ | Strict type safety across API models and UI props |
+| **Build Tool** | Vite 6.x | Lightning-fast HMR and optimized production bundling |
+| **State & Data Fetching** | TanStack Query v5 (`@tanstack/react-query`) | Server state caching, background polling, and optimistic updates |
+| **Styling** | TailwindCSS v4 (`@tailwindcss/vite`) | Modern, utility-first CSS design system in dark theme |
+| **Icons** | Lucide React | Clean, consistent developer UI iconography |
+| **Charts & Heatmaps** | Recharts & Custom Canvas | Real-time GPU telemetry time-series and node heatmaps |
+| **Routing** | React Router v7 | Nested route layout and protected view navigation |
 
-## Dependencies
-- **Core Framework**: React 19, TypeScript.
-- **Build Tool**: Vite (for lightning-fast HMR and optimized production bundles).
-- **Styling**: TailwindCSS v4 (Utility-first CSS).
-- **Icons**: Lucide React.
-- **Charts**: Recharts (for rendering time-series metric graphs).
+---
 
-## Data Flow
-```text
-React Component → Custom Hook → API Client Wrapper → HTTP Fetch → Go API Server
+## Dashboard Feature Modules
+
+```
+src/
+├── components/           # Reusable UI primitives & layout shells
+│   ├── Layout.tsx        # App header, sidebar navigation, tenant selector, waste ticker
+│   ├── ClusterOverview.tsx # Cluster health score, active GPUs, total compute
+│   ├── GPUHeatmap.tsx    # Live tile map showing temperature/utilization per GPU
+│   ├── InefficiencyPanel.tsx # Detected bottlenecks with severity badges
+│   ├── RecommendationPanel.tsx # Actionable ROI savings & 1-click auto-fix modal
+│   ├── MetricsChart.tsx  # Time-series graphs for compute, VRAM, and power
+│   ├── APIKeyManager.tsx # Machine agent API key generation & rotation
+│   └── AuthModal.tsx     # Tenant login and registration modal
+├── features/             # Route-level views
+│   ├── cluster/Dashboard.tsx     # Main executive cluster monitoring hub
+│   ├── cluster/Inefficiencies.tsx# Filterable bottleneck inspection view
+│   ├── cluster/Nodes.tsx         # Node-level hardware inventory & status
+│   ├── recommendations/          # Optimization task list with patch generator
+│   ├── executive/FleetSimulator.tsx # Interactive GPU fleet cost & ROI calculator
+│   ├── billing/BillingView.tsx   # Monitored GPU-hours & tier usage metering
+│   ├── alerts/Alerts.tsx         # Incident dispatch history and channel status
+│   └── jobs/Jobs.tsx             # Active ML training workload tracker
+├── context/              # React Auth and Workspace Context
+│   └── AuthContext.tsx   # JWT storage, login/signup/logout, and tenant scoping
+└── services/api.ts       # Type-safe HTTP fetch client connecting to Go API Server
 ```
 
-## Operational Considerations
-- **Deployment**: The output of `npm run build` is a collection of static HTML, CSS, and JS files. These should be served via an edge CDN (e.g., Cloudflare Pages, Vercel, AWS CloudFront) or a lightweight web server (e.g., Nginx) rather than being served by the Go backend directly.
-- **Performance**: Vite automatically implements code-splitting and asset minification. Ensure images and heavy libraries are lazy-loaded.
+---
 
-## Security Considerations
-- **CORS**: The Go backend must be configured to allow Cross-Origin Resource Sharing from the domain hosting this React app.
-- **Authentication**: JWT tokens retrieved upon login must be securely stored. In an SPA, `localStorage` is vulnerable to XSS; consider storing JWTs in HttpOnly cookies if the API architecture permits.
-- **XSS**: React natively escapes variables to prevent Cross-Site Scripting, but `dangerouslySetInnerHTML` must never be used with user-provided data.
+## Getting Started Locally
 
-## Testing
-- **Unit Tests**: React Testing Library and Vitest should be used for testing individual components and hooks.
-- **Expected Coverage**: Focus on complex state logic and API integration points rather than purely presentational components.
+### 1. Install Dependencies
+```bash
+cd web
+npm install
+```
 
-## Future Improvements
-- Integrate React Query or SWR for more robust data fetching, caching, and background polling.
-- Implement WebSocket or Server-Sent Events (SSE) connections for truly real-time metric updates without polling.
+### 2. Run Local Development Server (Vite)
+```bash
+npm run dev
+```
+The dashboard runs at [http://localhost:5173](http://localhost:5173). Requests to `/api/v1` are proxied to the Go API Server at `http://localhost:8080`.
+
+### 3. Typecheck & Production Build
+```bash
+# Typecheck TypeScript files
+npx tsc --noEmit
+
+# Compile production bundle to dist/
+npm run build
+```
+
+---
+
+## Production Deployment
+
+The production build generates optimized static HTML/CSS/JS in `web/dist/`. In production, this bundle is served by an unprivileged Nginx container (see `Dockerfile` `target: web`) or deployed to any edge CDN (Cloudflare Pages, Vercel, S3/CloudFront).
