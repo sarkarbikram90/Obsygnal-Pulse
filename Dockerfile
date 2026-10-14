@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o /app/bin/api-server ./cmd/api-server/
 
-FROM alpine:3.19 AS api-server
+FROM alpine:3.24 AS api-server
 RUN apk add --no-cache ca-certificates tzdata
 RUN adduser -D -u 1000 appuser
 WORKDIR /app
@@ -38,7 +38,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o /app/bin/worker ./cmd/worker/
 
-FROM alpine:3.19 AS worker
+FROM alpine:3.24 AS worker
 RUN apk add --no-cache ca-certificates tzdata
 RUN adduser -D -u 1000 appuser
 WORKDIR /app
@@ -54,7 +54,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o /app/bin/collector ./cmd/collector/
 
-FROM alpine:3.19 AS collector
+FROM alpine:3.24 AS collector
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=build-collector /app/bin/collector ./service
@@ -68,7 +68,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o /app/bin/simulator ./cmd/simulator/
 
-FROM alpine:3.19 AS simulator
+FROM alpine:3.24 AS simulator
 RUN apk add --no-cache ca-certificates tzdata
 RUN adduser -D -u 1000 appuser
 WORKDIR /app
