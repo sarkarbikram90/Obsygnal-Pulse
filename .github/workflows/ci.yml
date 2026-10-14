@@ -139,7 +139,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build API Server Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -150,7 +150,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Worker Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -161,7 +161,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Collector Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -172,7 +172,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Web Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -183,7 +183,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Simulator Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
